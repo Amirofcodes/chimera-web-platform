@@ -1,0 +1,78 @@
+networks:
+  app_network:
+    driver: bridge
+    name: chimera-web-platform_network
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: chimera-web-platform-backend
+    depends_on:
+    - mysql
+    environment:
+    - MYSQL_HOST=mysql
+    - MYSQL_PORT=3306
+    - MYSQL_USER=${MYSQL_USER}
+    - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    - MYSQL_DB=${MYSQL_DB}
+    networks:
+    - app_network
+    ports:
+    - 8000:80
+    volumes:
+    - ./backend/src:/var/www/html
+    - ./backend/logs:/var/log
+  frontend:
+    build:
+      context: ./frontend
+    container_name: chimera-web-platform-frontend
+    depends_on:
+    - backend
+    environment:
+    - REACT_APP_PORT=3000
+    - REACT_APP_BACKEND_PORT=8000
+    - REACT_APP_MYSQL_PORT=3300
+    - REACT_APP_PHPMYADMIN_PORT=8081
+    - REACT_APP_API_URL=http://localhost:8000
+    - WDS_SOCKET_HOST=0.0.0.0
+    - WDS_SOCKET_PORT=3000
+    - CHOKIDAR_USEPOLLING=true
+    - WATCHPACK_POLLING=true
+    networks:
+    - app_network
+    ports:
+    - 3000:3000
+    volumes:
+    - ./frontend:/app
+    - /app/node_modules
+  mysql:
+    container_name: chimera-web-platform-mysql
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DB}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+    image: mysql:8.0
+    networks:
+    - app_network
+    ports:
+    - 3300:3306
+    volumes:
+    - mysql_data:/var/lib/mysql
+    - ./database/init:/docker-entrypoint-initdb.d
+  phpmyadmin:
+    container_name: chimera-web-platform-phpmyadmin
+    depends_on:
+    - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+      PMA_USER: ${MYSQL_USER}
+    image: phpmyadmin/phpmyadmin
+    networks:
+    - app_network
+    ports:
+    - 8081:80
+volumes:
+  mysql_data:
+    driver: local
