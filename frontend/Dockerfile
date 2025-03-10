@@ -9,8 +9,14 @@ RUN apk add --no-cache curl
 COPY package*.json ./
 RUN npm install
 
+# Install Tailwind CSS and dependencies
+RUN npm install -D tailwindcss postcss autoprefixer
+
 # Copy app source
 COPY . .
+
+# Build CSS
+RUN npm run build:css
 
 # Environment variables
 ENV NODE_ENV=development

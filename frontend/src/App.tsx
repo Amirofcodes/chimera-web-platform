@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { MainLayout } from "./components/layout/MainLayout";
 import HomePage from "./pages/Home";
+import RegisterPage from "./pages/Auth/Register";
 import LoginPage from "./pages/Auth/Login";
 import DashboardPage from "./pages/Dashboard";
 import TemplatesListPage from "./pages/Templates/TemplatesList";
@@ -16,6 +17,7 @@ const App = () => {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           
           <Route path="/" element={<MainLayout />}>
             <Route index element={<HomePage />} />
