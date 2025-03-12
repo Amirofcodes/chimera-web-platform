@@ -765,6 +765,10 @@ body {
   resize: both;
 }
 
+.list-disc {
+  list-style-type: disc;
+}
+
 .appearance-none {
   appearance: none;
 }
@@ -998,6 +1002,10 @@ body {
 .py-8 {
   padding-top: 2rem;
   padding-bottom: 2rem;
+}
+
+.pl-6 {
+  padding-left: 1.5rem;
 }
 
 .text-left {

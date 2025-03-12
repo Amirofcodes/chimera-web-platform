@@ -9,7 +9,10 @@ $request = $_SERVER['REQUEST_URI'];
 $path = parse_url($request, PHP_URL_PATH);
 
 // Remove /api prefix
-$path = str_replace('/api/', '', $path);
+$path = trim($path, '/');
+if (strpos($path, 'api/') === 0) {
+    $path = substr($path, 4);
+}
 
 // Handle OPTIONS requests (CORS preflight)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -129,7 +132,7 @@ function handleLogin($data) {
         $pdo = new PDO($dsn, $user, $pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Find user by email
+        // Find user by email (ensure the table name is correct; here, assumed to be 'users')
         $stmt = $pdo->prepare("SELECT id, email, name, password_hash FROM users WHERE email = ?");
         $stmt->execute([$data['email']]);
         
@@ -150,6 +153,7 @@ function handleLogin($data) {
         
         // Create JWT token
         $token = generateJWT(['id' => $user['id'], 'email' => $user['email']]);
+        error_log("Generated token: " . $token);
         
         echo json_encode([
             'success' => true,
@@ -169,6 +173,7 @@ function handleLogin($data) {
         ]);
     }
 }
+
 
 function handleProfile() {
     $headers = getallheaders();
