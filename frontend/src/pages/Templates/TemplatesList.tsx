@@ -1,44 +1,31 @@
+// frontend/src/pages/Templates/TemplatesList.tsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../../components/shared/Card';
 import { Spinner } from '../../components/shared/Spinner';
-import Button from '../../components/shared/Button';
-
-// Mock data for development
-const mockTemplates = [
-  {
-    id: '1',
-    name: 'LAMP Stack',
-    description: 'Linux, Apache, MySQL, PHP development stack',
-    tags: ['php', 'mysql', 'apache']
-  },
-  {
-    id: '2',
-    name: 'MERN Stack',
-    description: 'MongoDB, Express, React, Node.js fullstack environment',
-    tags: ['react', 'node', 'mongodb']
-  },
-  {
-    id: '3',
-    name: 'Django + PostgreSQL',
-    description: 'Python Django with PostgreSQL database',
-    tags: ['python', 'django', 'postgresql']
-  }
-];
+import { templateService, Template } from '../../services/templateService';
 
 const TemplatesListPage = () => {
-  const [templates, setTemplates] = useState(mockTemplates);
-  const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // In a real implementation, this would fetch from the API
   useEffect(() => {
-    // Simulate API call
-    setLoading(true);
-    setTimeout(() => {
-      setTemplates(mockTemplates);
-      setLoading(false);
-    }, 500);
+    const fetchTemplates = async () => {
+      try {
+        setLoading(true);
+        const templates = await templateService.list();
+        setTemplates(templates);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching templates:', err);
+        setError('Failed to load templates');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTemplates();
   }, []);
 
   if (loading) return (
@@ -60,9 +47,6 @@ const TemplatesListPage = () => {
           <h1 className="text-2xl font-bold">Development Templates</h1>
           <p>Choose a template to quickly set up your development environment.</p>
         </div>
-        <Link to="/templates/create">
-          <Button>Create Template</Button>
-        </Link>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
