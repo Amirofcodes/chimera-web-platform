@@ -5,6 +5,7 @@ import { MainLayout } from "./components/layout/MainLayout";
 import HomePage from "./pages/Home";
 import RegisterPage from "./pages/Auth/Register";
 import LoginPage from "./pages/Auth/Login";
+import CliDownloadPage from "./pages/CliDownload";
 import DashboardPage from "./pages/Dashboard";
 import TemplatesListPage from "./pages/Templates/TemplatesList";
 import TemplateDetailPage from "./pages/Templates/TemplateDetail";
@@ -18,6 +19,7 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/download-cli" element={<CliDownloadPage />} />
           
           <Route path="/" element={<MainLayout />}>
             <Route index element={<HomePage />} />
