@@ -1,3 +1,4 @@
+// frontend/src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
@@ -11,6 +12,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   login: (credentials: { email: string; password: string }) => Promise<void>;
+  register: (data: { email: string; password: string; name?: string }) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -29,12 +31,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (token) {
         try {
-          // In production, validate token with backend
-          // For now, mock the authentication
-          setUser({ id: '1', email: 'user@example.com' });
-          setIsAuthenticated(true);
+          // Set token in API headers
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          // Fetch user profile
+          const response = await api.get('/auth/profile');
+          
+          if (response.data && response.data.success) {
+            setUser(response.data.user);
+            setIsAuthenticated(true);
+          } else {
+            // If profile fetch fails, clear token
+            localStorage.removeItem('token');
+            delete api.defaults.headers.common['Authorization'];
+          }
         } catch (error) {
+          console.error('Authentication check failed:', error);
           localStorage.removeItem('token');
+          delete api.defaults.headers.common['Authorization'];
         }
       }
       
@@ -46,29 +60,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      // In production, integrate with real API
-      // For now, mock the authentication
-      const mockUser = { id: '1', email: credentials.email, name: 'Test User' };
+      const response = await api.post('/auth/login', credentials);
       
-      // Mock token
-      const mockToken = 'mock-jwt-token';
-      localStorage.setItem('token', mockToken);
-      
-      setUser(mockUser);
-      setIsAuthenticated(true);
+      if (response.data && response.data.success) {
+        const { user, access_token } = response.data;
+        
+        // Store token
+        localStorage.setItem('token', access_token);
+        
+        // Set auth header for future requests
+        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+        
+        setUser(user);
+        setIsAuthenticated(true);
+      } else {
+        throw new Error(response.data.error || 'Login failed');
+      }
     } catch (error) {
-      throw new Error('Authentication failed');
+      console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  const register = async (data: { email: string; password: string; name?: string }) => {
+    try {
+      const response = await api.post('/auth/register', data);
+      
+      if (response.data && response.data.success) {
+        const { user, access_token } = response.data;
+        
+        // Store token
+        localStorage.setItem('token', access_token);
+        
+        // Set auth header for future requests
+        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+        
+        setUser(user);
+        setIsAuthenticated(true);
+      } else {
+        throw new Error(response.data.error || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
