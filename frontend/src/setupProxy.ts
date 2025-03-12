@@ -1,14 +1,13 @@
+// setupProxy.ts
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
-module.exports = function (app) {
+module.exports = function (app: { use: (arg0: string, arg1: any) => void; }) {
   app.use(
     "/api",
     createProxyMiddleware({
-      target: process.env.REACT_APP_BACKEND_URL || `http://localhost:${process.env.BACKEND_PORT}`,
-      pathRewrite: {
-        "^/api": "/api",
-      },
+      target: "http://localhost:8000", // The backend
       changeOrigin: true,
+      // pathRewrite: { "^/api": "/api" }, // Not strictly needed if your backend routes on /api
     })
   );
 };
