@@ -1,4 +1,3 @@
-// frontend/src/services/templateService.ts
 import api from './api';
 
 export interface Template {
@@ -15,6 +14,14 @@ export interface Service {
   port: number;
 }
 
+export interface DownloadResult {
+  success: boolean;
+  message: string;
+  download_url: string;
+  template_id: string;
+  size: string;
+}
+
 export const templateService = {
   list: async (): Promise<Template[]> => {
     const response = await api.get('/templates');
@@ -22,8 +29,10 @@ export const templateService = {
   },
   
   get: async (id: string): Promise<Template> => {
-    // For the detailed view, we're using mock data for now
-    // In a real implementation, this would call: api.get(`/templates/${id}`)
+    // For a real implementation, this would call the API endpoint
+    // return api.get(`/templates/${id}`).then(response => response.data);
+    
+    // For now, we're using mock data
     const templates = await templateService.list();
     const template = templates.find(t => t.id === id);
     
@@ -70,8 +79,33 @@ export const templateService = {
     } as any;
   },
   
+  // Updated download method to use the authenticated API endpoint
   download: async (id: string): Promise<string> => {
-    const response = await api.get(`/templates/download?id=${id}`);
-    return response.data.download_url;
+    try {
+      const response = await api.get<DownloadResult>(`/templates/download?id=${id}`);
+      
+      if (response.data.success) {
+        // Create a temporary anchor element to trigger the download
+        const link = document.createElement('a');
+        link.href = response.data.download_url;
+        link.setAttribute('download', `${id.replace('/', '-')}.zip`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        return response.data.download_url;
+      } else {
+        throw new Error(response.data.message || 'Download failed');
+      }
+    } catch (error) {
+      console.error('Template download error:', error);
+      throw error;
+    }
+  },
+  
+  // New method to track download statistics
+  getDownloadStats: async (): Promise<{templateId: string, count: number}[]> => {
+    const response = await api.get('/templates/stats');
+    return response.data.stats;
   }
 };

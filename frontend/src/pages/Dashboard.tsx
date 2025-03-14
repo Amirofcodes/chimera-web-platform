@@ -1,10 +1,10 @@
-// Update src/pages/Dashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { Card } from '../components/shared/Card';
 import { useAuth } from '../context/AuthContext';
 import { templateService, Template } from '../services/templateService';
 import { Spinner } from '../components/shared/Spinner';
 import { Link } from 'react-router-dom';
+import DownloadHistoryWidget from './DownloadHistoryWidget';
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -16,8 +16,7 @@ const DashboardPage = () => {
       try {
         setLoading(true);
         const templateData = await templateService.list();
-        // In a real app, you'd filter by user's templates
-        // For now, just show the first 3 as "recently viewed"
+        // Just show the first 3 as "recently viewed"
         setTemplates(templateData.slice(0, 3));
       } catch (error) {
         console.error('Error fetching templates:', error);
@@ -38,7 +37,7 @@ const DashboardPage = () => {
         <p>Manage your development environments and templates from this dashboard.</p>
       </Card>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <Card>
           <h3 className="text-lg font-bold mb-2">Active Environments</h3>
           <p className="text-2xl font-semibold">0</p>
@@ -71,6 +70,9 @@ const DashboardPage = () => {
           </div>
         </Card>
       </div>
+      
+      {/* Add the download history widget */}
+      <DownloadHistoryWidget />
     </div>
   );
 };

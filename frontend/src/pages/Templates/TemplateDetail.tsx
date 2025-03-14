@@ -11,8 +11,9 @@ const TemplateDetailPage = () => {
  
  const [template, setTemplate] = useState<any>(null);
  const [loading, setLoading] = useState(true);
+ const [downloading, setDownloading] = useState(false);
  const [error, setError] = useState<string | null>(null);
- const [creating, setCreating] = useState(false);
+ const [downloadSuccess, setDownloadSuccess] = useState(false);
 
  useEffect(() => {
    const fetchTemplate = async () => {
@@ -33,23 +34,23 @@ const TemplateDetailPage = () => {
  }, [id]);
 
  const handleDownloadTemplate = async () => {
-   setCreating(true);
+   setDownloading(true);
+   setError(null);
+   setDownloadSuccess(false);
+   
    try {
-     const downloadUrl = await templateService.download(id || '');
+     await templateService.download(id || '');
+     setDownloadSuccess(true);
      
-     // Create a temporary anchor element to trigger download
-     const link = document.createElement('a');
-     link.href = downloadUrl;
-     link.setAttribute('download', `${template.name}.zip`);
-     document.body.appendChild(link);
-     link.click();
-     document.body.removeChild(link);
+     // Refresh the template data to get updated download count
+     const refreshedTemplate = await templateService.get(id || '');
+     setTemplate(refreshedTemplate);
      
-   } catch (error) {
-     console.error('Download failed:', error);
-     setError('Failed to download template');
+   } catch (err: any) {
+     console.error('Download failed:', err);
+     setError(err.message || 'Failed to download template');
    } finally {
-     setCreating(false);
+     setDownloading(false);
    }
  };
 
@@ -75,7 +76,7 @@ const TemplateDetailPage = () => {
        <h2 className="text-xl font-semibold mb-4">Description</h2>
        <p className="mb-4">{template.longDescription}</p>
        <div className="flex flex-wrap gap-2 mb-4">
-       {template.tags.map((tag: string) => (
+         {template.tags.map((tag: string) => (
            <span 
              key={tag} 
              className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded"
@@ -84,12 +85,25 @@ const TemplateDetailPage = () => {
            </span>
          ))}
        </div>
-       <Button 
-         onClick={handleDownloadTemplate} 
-         isLoading={creating}
-       >
-         Download Template
-       </Button>
+       
+       {downloadSuccess && (
+         <div className="bg-green-50 text-green-700 p-3 rounded mb-4">
+           Template download initiated successfully!
+         </div>
+       )}
+       
+       <div className="flex items-center">
+         <Button 
+           onClick={handleDownloadTemplate} 
+           isLoading={downloading}
+           disabled={downloading}
+         >
+           Download Template
+         </Button>
+         <span className="ml-3 text-sm text-gray-500">
+           {template.downloads} downloads
+         </span>
+       </div>
      </Card>
      
      <Card>
@@ -104,7 +118,7 @@ const TemplateDetailPage = () => {
              </tr>
            </thead>
            <tbody className="bg-white divide-y divide-gray-200">
-           {template.services.map((service: { name: string, type: string, port: number }) => (
+             {template.services.map((service: { name: string, type: string, port: number }) => (
                <tr key={service.name}>
                  <td className="px-6 py-4 whitespace-nowrap">{service.name}</td>
                  <td className="px-6 py-4 whitespace-nowrap">{service.type}</td>
