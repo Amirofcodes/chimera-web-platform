@@ -29,12 +29,20 @@ export const templateService = {
   },
   
   get: async (id: string): Promise<Template> => {
+    console.log("Fetching template with ID:", id);
     // For a real implementation, this would call the API endpoint
     // return api.get(`/templates/${id}`).then(response => response.data);
     
     // For now, we're using mock data
     const templates = await templateService.list();
-    const template = templates.find(t => t.id === id);
+    console.log("Available templates:", templates);
+    
+    // Ensure ID is properly decoded in case it came from URL
+    const decodedId = decodeURIComponent(id);
+    console.log("Decoded ID:", decodedId);
+    
+    const template = templates.find(t => t.id === decodedId);
+    console.log("Found template:", template);
     
     if (!template) {
       throw new Error('Template not found');

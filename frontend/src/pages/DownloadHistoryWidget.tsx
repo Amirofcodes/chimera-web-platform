@@ -79,7 +79,7 @@ const DownloadHistoryWidget = () => {
           {displayDownloads.map((download, index) => (
             <div key={index} className="py-2">
               <Link 
-                to={`/templates/${download.template_id}`}
+                to={`/templates/${encodeURIComponent(download.template_id)}`}
                 className="text-blue-600 hover:underline font-medium"
               >
                 {download.template_name}

@@ -1,4 +1,3 @@
-// frontend/src/pages/Templates/TemplatesList.tsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../../components/shared/Card';
@@ -51,7 +50,7 @@ const TemplatesListPage = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {templates.map(template => (
-          <Link key={template.id} to={`/templates/${template.id}`}>
+          <Link key={template.id} to={`/templates/${encodeURIComponent(template.id)}`}>
             <Card className="h-full transition-shadow hover:shadow-md">
               <h2 className="text-xl font-bold mb-2">{template.name}</h2>
               <p className="text-gray-600 mb-4">{template.description}</p>
