@@ -65,7 +65,16 @@ switch ($path) {
                 echo json_encode(['error' => 'Template ID is required']);
                 exit;
             }
+            
             $template_id = $_GET['id'];
+            
+            // Get the static download URL instead of building one
+            $download_url = getTemplateDownloadUrl($template_id);
+            if (!$download_url) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Template not found']);
+                exit;
+            }
             
             // Connect to database
             $host = getenv('MYSQL_HOST');
@@ -81,22 +90,17 @@ switch ($path) {
             $stmt = $pdo->prepare("INSERT INTO template_downloads (user_id, template_id, download_date) VALUES (?, ?, NOW())");
             $stmt->execute([$payload['id'], $template_id]);
             
-            // For demo purposes, return download info
-            $template_path = findTemplatePath($template_id);
-            if (!$template_path) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Template not found']);
-                exit;
-            }
+            // File size calculation using the physical file in the downloads directory
+            $file_path = __DIR__ . $download_url;
+            $file_size = file_exists($file_path) ? filesize($file_path) : '1024 KB';
             
             echo json_encode([
                 'success'     => true,
                 'template_id' => $template_id,
                 'message'     => 'Template download ready',
-                'download_url'=> '/downloads/' . $template_id . '.zip',
-                'size'        => rand(1024, 5120) . ' KB',
+                'download_url'=> $download_url,
+                'size'        => $file_size
             ]);
-            
         } catch (Exception $e) {
             http_response_code(401);
             echo json_encode([
@@ -388,6 +392,20 @@ function findTemplatePath($template_id) {
         'php/nginx/postgresql'           => __DIR__ . '/../templates/php/nginx/postgresql',
         'php/nginx/mariadb'              => __DIR__ . '/../templates/php/nginx/mariadb',
         'fullstack/react-php/mysql-nginx' => __DIR__ . '/../templates/fullstack/react-php/mysql-nginx',
+    ];
+    
+    return isset($templates[$template_id]) ? $templates[$template_id] : null;
+}
+
+/**
+ * Map template IDs to their static download URLs.
+ */
+function getTemplateDownloadUrl($template_id) {
+    $templates = [
+        'php/nginx/mysql'                => '/downloads/php-nginx-mysql.zip',
+        'php/nginx/postgresql'           => '/downloads/php-nginx-postgresql.zip',
+        'php/nginx/mariadb'              => '/downloads/php-nginx-mariadb.zip', 
+        'fullstack/react-php/mysql-nginx' => '/downloads/fullstack-react-php-mysql.zip',
     ];
     
     return isset($templates[$template_id]) ? $templates[$template_id] : null;

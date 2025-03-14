@@ -28,8 +28,8 @@ const App = () => {
             <Route element={<PrivateRoute />}>
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="templates" element={<TemplatesListPage />} />
-              <Route path="templates/:id" element={<TemplateDetailPage />} />
               <Route path="templates/create" element={<CreateTemplatePage />} />
+              <Route path="templates/:id" element={<TemplateDetailPage />} />
             </Route>
           </Route>
         </Routes>
