@@ -1,10 +1,12 @@
-// frontend/src/pages/Home.tsx
 import React from 'react';
 import { Card } from '../components/shared/Card';
 import Button from '../components/shared/Button';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const HomePage = () => {
+  const { isAuthenticated } = useAuth();
+
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Welcome to ChimeraStack</h1>
@@ -17,9 +19,16 @@ const HomePage = () => {
           <Link to="/download-cli">
             <Button variant="primary">Download CLI</Button>
           </Link>
-          <Link to="/templates">
-            <Button variant="secondary">Explore Templates</Button>
-          </Link>
+          
+          {isAuthenticated ? (
+            <Link to="/templates">
+              <Button variant="secondary">Explore Templates</Button>
+            </Link>
+          ) : (
+            <Link to="/register">
+              <Button variant="secondary">Register to Access Templates</Button>
+            </Link>
+          )}
         </div>
       </Card>
       

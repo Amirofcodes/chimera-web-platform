@@ -19,15 +19,16 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/download-cli" element={<CliDownloadPage />} />
           
           <Route path="/" element={<MainLayout />}>
+            <Route path="download-cli" element={<CliDownloadPage />} />
             <Route index element={<HomePage />} />
-            <Route path="templates" element={<TemplatesListPage />} />
-            <Route path="templates/:id" element={<TemplateDetailPage />} />
             
+            {/* Move templates routes inside PrivateRoute */}
             <Route element={<PrivateRoute />}>
               <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="templates" element={<TemplatesListPage />} />
+              <Route path="templates/:id" element={<TemplateDetailPage />} />
               <Route path="templates/create" element={<CreateTemplatePage />} />
             </Route>
           </Route>
