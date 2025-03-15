@@ -12,7 +12,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl
       - ./nginx/www:/var/www/html
       - certbot-data:/var/www/certbot
-      - certbot-certs:/etc/letsencrypt
+      - certbot-certs:/etc/letsencrypt:ro
     depends_on:
       - frontend
       - backend
