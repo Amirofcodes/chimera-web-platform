@@ -11,8 +11,8 @@ services:
       - ./nginx/conf:/etc/nginx/conf.d
       - ./nginx/ssl:/etc/nginx/ssl
       - ./nginx/www:/var/www/html
-      - certbot-data:/var/www/certbot
-      - certbot-certs:/etc/letsencrypt:ro
+      # Mount the host's /etc/letsencrypt directory read-only
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - frontend
       - backend
@@ -72,26 +72,12 @@ services:
       - chimera_network
     restart: always
 
-  certbot:
-    image: certbot/certbot
-    container_name: chimera_certbot
-    volumes:
-      - certbot-data:/var/www/certbot
-      - certbot-certs:/etc/letsencrypt
-    depends_on:
-      - nginx
-    command: renew
-
 networks:
   chimera_network:
     driver: bridge
 
 volumes:
   mysql_data:
-    driver: local
-  certbot-data:
-    driver: local
-  certbot-certs:
     driver: local
   frontend-build:
     driver: local
