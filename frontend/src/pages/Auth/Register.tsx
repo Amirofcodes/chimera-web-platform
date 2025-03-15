@@ -1,4 +1,4 @@
-// src/pages/Auth/Register.tsx
+// frontend/src/pages/Auth/Register.tsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -8,11 +8,12 @@ import { Card } from '../../components/shared/Card';
 const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth(); // We'll use login after registration
+  const { register } = useAuth();
   const navigate = useNavigate();
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,13 +29,10 @@ const RegisterPage = () => {
     }
     
     try {
-      // In real implementation, this would call the backend API for registration
-      // For now, just wait a moment and then log the user in
-      await new Promise(resolve => setTimeout(resolve, 800));
-      await login({ email, password });
+      await register({ email, password, name });
       navigate('/dashboard');
-    } catch (err) {
-      setError('Registration failed');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -59,6 +57,19 @@ const RegisterPage = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
+              Name (optional)
+            </label>
+            <input
+              id="name"
+              type="text"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
           

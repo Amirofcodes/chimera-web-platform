@@ -1,5 +1,6 @@
+// frontend/src/pages/Auth/Login.tsx
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/shared/Button';
 import { Card } from '../../components/shared/Card';
@@ -12,6 +13,10 @@ const LoginPage = () => {
   
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get the redirect path from location state, or use dashboard as default
+  const from = (location.state as any)?.from || '/dashboard';
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,11 +24,10 @@ const LoginPage = () => {
     setError('');
     
     try {
-      // In real implementation, this would call the backend API
       await login({ email, password });
-      navigate('/dashboard');
-    } catch (err) {
-      setError('Invalid credentials');
+      navigate(from);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Login failed');
     } finally {
       setLoading(false);
     }

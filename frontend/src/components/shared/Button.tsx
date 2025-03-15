@@ -1,4 +1,3 @@
-// components/shared/Button.tsx
 import React from 'react';
 import { Spinner } from './Spinner';
 
@@ -6,16 +5,18 @@ interface ButtonProps {
   variant?: 'primary' | 'success' | 'danger' | 'secondary';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
+  disabled?: boolean;
   children: React.ReactNode;
   className?: string;
   onClick?: () => void;
-  type?: 'button' | 'submit' | 'reset'; // Add this line
+  type?: 'button' | 'submit' | 'reset';
 }
 
 const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
   isLoading = false,
+  disabled = false,
   children,
   className = '',
   ...props
@@ -36,15 +37,18 @@ const Button: React.FC<ButtonProps> = ({
     secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300'
   };
 
+  const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';
+
   return (
     <button
       className={`
         ${baseClasses}
         ${sizeClasses[size]}
         ${variantClasses[variant]}
+        ${disabledClasses}
         ${className}
       `}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
       {...props}
     >
       {isLoading ? <Spinner /> : children}
