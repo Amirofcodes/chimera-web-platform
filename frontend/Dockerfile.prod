@@ -21,7 +21,7 @@ FROM nginx:alpine
 # Copy build files from build stage
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Create a default nginx config directly in the Dockerfile
+# Create a default nginx config that serves frontend static files
 RUN echo 'server { \
     listen 80; \
     server_name localhost; \
