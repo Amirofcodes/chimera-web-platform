@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS template_downloads (
     FOREIGN KEY (template_id) REFERENCES templates(id)
 );
 
--- Insert sample templates
-INSERT INTO templates (id, name, description, category) VALUES
+-- Insert sample templates (using INSERT IGNORE to avoid duplicates)
+INSERT IGNORE INTO templates (id, name, description, category) VALUES
 ('php/nginx/mysql', 'PHP/Nginx/MySQL Stack', 'PHP development environment with Nginx web server and MySQL database', 'PHP Development'),
 ('php/nginx/postgresql', 'PHP/Nginx/PostgreSQL Stack', 'PHP development environment with Nginx web server and PostgreSQL database', 'PHP Development'),
 ('php/nginx/mariadb', 'PHP/Nginx/MariaDB Stack', 'PHP development environment with Nginx web server and MariaDB database', 'PHP Development'),

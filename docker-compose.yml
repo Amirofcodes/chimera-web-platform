@@ -8,44 +8,53 @@ services:
       context: ./backend
     container_name: chimera-web-platform-backend
     depends_on:
-    - mysql
+      - mysql
     environment:
-    - MYSQL_HOST=mysql
-    - MYSQL_PORT=3306
-    - MYSQL_USER=${MYSQL_USER}
-    - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    - MYSQL_DB=${MYSQL_DB}
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DB=${MYSQL_DB}
+      - JWT_SECRET=${JWT_SECRET}
+      - PHP_ENVIRONMENT=development
+      - PHP_DEBUG=true
     networks:
-    - app_network
+      - app_network
     ports:
-    - 8000:80
+      - 8000:80
     volumes:
-    - ./backend/src:/var/www/html
-    - ./backend/logs:/var/log
-    - ./backend/downloads:/var/www/html/downloads
+      - ./backend/src:/var/www/html
+      - ./backend/logs:/var/log
+      - ./backend/downloads:/var/www/html/downloads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/test.php"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
   frontend:
     build:
       context: ./frontend
     container_name: chimera-web-platform-frontend
     depends_on:
-    - backend
+      - backend
     environment:
-    - REACT_APP_PORT=3000
-    - REACT_APP_BACKEND_PORT=8000
-    - REACT_APP_MYSQL_PORT=3300
-    - REACT_APP_PHPMYADMIN_PORT=8081
-    - REACT_APP_API_URL=http://localhost:8000/api 
-    - WDS_SOCKET_HOST=0.0.0.0
-    - WDS_SOCKET_PORT=3000
-    - CHOKIDAR_USEPOLLING=true
-    - WATCHPACK_POLLING=true
+      - REACT_APP_PORT=3000
+      - REACT_APP_BACKEND_PORT=8000
+      - REACT_APP_MYSQL_PORT=3300
+      - REACT_APP_PHPMYADMIN_PORT=8081
+      - REACT_APP_API_URL=http://localhost:8000/api
+      - WDS_SOCKET_HOST=0.0.0.0
+      - WDS_SOCKET_PORT=3000
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     networks:
-    - app_network
+      - app_network
     ports:
-    - 3000:3000
+      - 3000:3000
     volumes:
-    - ./frontend:/app
-    - /app/node_modules
+      - ./frontend:/app
+      - /app/node_modules
   mysql:
     container_name: chimera-web-platform-mysql
     environment:
@@ -55,25 +64,31 @@ services:
       MYSQL_USER: ${MYSQL_USER}
     image: mysql:8.0
     networks:
-    - app_network
+      - app_network
     ports:
-    - 3300:3306
+      - 3300:3306
     volumes:
-    - mysql_data:/var/lib/mysql
-    - ./database/init:/docker-entrypoint-initdb.d
+      - mysql_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
   phpmyadmin:
     container_name: chimera-web-platform-phpmyadmin
     depends_on:
-    - mysql
+      - mysql
     environment:
       PMA_HOST: mysql
       PMA_PASSWORD: ${MYSQL_PASSWORD}
       PMA_USER: ${MYSQL_USER}
+      UPLOAD_LIMIT: 50M
     image: phpmyadmin/phpmyadmin
     networks:
-    - app_network
+      - app_network
     ports:
-    - 8081:80
+      - 8081:80
 volumes:
   mysql_data:
     driver: local

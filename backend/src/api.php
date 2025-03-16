@@ -1,11 +1,23 @@
 <?php
+// Set error reporting for development
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Configure headers for JSON API and CORS
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
+// Handle preflight OPTIONS requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit();
+}
+
 // Enhanced debugging
-error_log("========= REQUEST START =========");
+error_log("========= API REQUEST START =========");
 error_log("REQUEST URI: " . $_SERVER['REQUEST_URI']);
 error_log("REQUEST METHOD: " . $_SERVER['REQUEST_METHOD']);
 error_log("CONTENT TYPE: " . ($_SERVER['CONTENT_TYPE'] ?? 'Not set'));
@@ -37,8 +49,56 @@ if (strpos($path, 'api/') === 0) {
 }
 
 error_log("NORMALIZED PATH: " . $path);
-error_log("========= REQUEST END =========");
 
+// Database connection function
+function getDbConnection() {
+    $host = getenv('MYSQL_HOST');
+    $port = getenv('MYSQL_PORT');
+    $db   = getenv('MYSQL_DB');
+    $user = getenv('MYSQL_USER');
+    $pass = getenv('MYSQL_PASSWORD');
+
+    if (!$host || !$db || !$user || !$pass) {
+        error_log("Missing database environment variables");
+        return null;
+    }
+
+    try {
+        $dsn = "mysql:host=$host;port=$port;dbname=$db";
+        $pdo = new PDO($dsn, $user, $pass);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        return $pdo;
+    } catch (PDOException $e) {
+        error_log("Database connection error: " . $e->getMessage());
+        return null;
+    }
+}
+
+// Authentication helper
+function authenticateRequest() {
+    $headers = getallheaders();
+    $token = null;
+
+    if (isset($headers['Authorization'])) {
+        $auth_header = $headers['Authorization'];
+        if (strpos($auth_header, 'Bearer ') === 0) {
+            $token = substr($auth_header, 7);
+        }
+    }
+
+    if (!$token) {
+        return null;
+    }
+
+    try {
+        return verifyJWT($token);
+    } catch (Exception $e) {
+        error_log("Authentication error: " . $e->getMessage());
+        return null;
+    }
+}
+
+// Route requests
 switch ($path) {
     case 'auth/register':
         handleRegister($json_data);
@@ -56,129 +116,14 @@ switch ($path) {
         getTemplates();
         break;
     case 'templates/download':
-        // Authentication check
-        $headers = getallheaders();
-        $token = null;
-        if (isset($headers['Authorization'])) {
-            $auth_header = $headers['Authorization'];
-            if (strpos($auth_header, 'Bearer ') === 0) {
-                $token = substr($auth_header, 7);
-            }
-        }
-        if (!$token) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Authentication required']);
-            exit;
-        }
-        
-        try {
-            $payload = verifyJWT($token);
-            
-            if (!isset($_GET['id'])) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Template ID is required']);
-                exit;
-            }
-            
-            $template_id = $_GET['id'];
-            
-            // Get the static download URL instead of building one
-            $download_url = getTemplateDownloadUrl($template_id);
-            if (!$download_url) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Template not found']);
-                exit;
-            }
-            
-            // Connect to database
-            $host = getenv('MYSQL_HOST');
-            $port = getenv('MYSQL_PORT');
-            $db   = getenv('MYSQL_DB');
-            $user = getenv('MYSQL_USER');
-            $pass = getenv('MYSQL_PASSWORD');
-            $dsn = "mysql:host=$host;port=$port;dbname=$db";
-            $pdo = new PDO($dsn, $user, $pass);
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            
-            // Record download in database
-            $stmt = $pdo->prepare("INSERT INTO template_downloads (user_id, template_id, download_date) VALUES (?, ?, NOW())");
-            $stmt->execute([$payload['id'], $template_id]);
-            
-            // File size calculation using the physical file in the downloads directory
-            $file_path = __DIR__ . $download_url;
-            $file_size = file_exists($file_path) ? filesize($file_path) : '1024 KB';
-            
-            echo json_encode([
-                'success'     => true,
-                'template_id' => $template_id,
-                'message'     => 'Template download ready',
-                'download_url'=> $download_url,
-                'size'        => $file_size
-            ]);
-        } catch (Exception $e) {
-            http_response_code(401);
-            echo json_encode([
-                'error'   => 'Invalid token',
-                'message' => $e->getMessage()
-            ]);
-        }
+        handleTemplateDownload();
         break;
     case 'user/downloads':
-        // Authentication check
-        $headers = getallheaders();
-        $token = null;
-        if (isset($headers['Authorization'])) {
-            $auth_header = $headers['Authorization'];
-            if (strpos($auth_header, 'Bearer ') === 0) {
-                $token = substr($auth_header, 7);
-            }
-        }
-        if (!$token) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Authentication required']);
-            exit;
-        }
-        
-        try {
-            $payload = verifyJWT($token);
-            
-            // Connect to database
-            $host = getenv('MYSQL_HOST');
-            $port = getenv('MYSQL_PORT');
-            $db   = getenv('MYSQL_DB');
-            $user = getenv('MYSQL_USER');
-            $pass = getenv('MYSQL_PASSWORD');
-            $dsn = "mysql:host=$host;port=$port;dbname=$db";
-            $pdo = new PDO($dsn, $user, $pass);
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            
-            // Get user download history
-            $stmt = $pdo->prepare("
-                SELECT td.template_id, t.name as template_name, td.download_date 
-                FROM template_downloads td
-                JOIN templates t ON td.template_id = t.id
-                WHERE td.user_id = ?
-                ORDER BY td.download_date DESC
-                LIMIT 10
-            ");
-            $stmt->execute([$payload['id']]);
-            $downloads = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            echo json_encode([
-                'success'   => true,
-                'downloads' => $downloads
-            ]);
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                'error'   => 'Failed to retrieve download history',
-                'message' => $e->getMessage()
-            ]);
-        }
+        getUserDownloads();
         break;
     case 'test':
-        // New test endpoint
-        echo json_encode(['success' => true, 'message' => 'Test endpoint working']);
+        // Simple test endpoint
+        echo json_encode(['success' => true, 'message' => 'API is working']);
         break;
     default:
         // Log the unmatched path
@@ -187,6 +132,8 @@ switch ($path) {
         echo json_encode(['error' => 'API endpoint not found', 'path' => $path]);
         break;
 }
+
+error_log("========= API REQUEST END =========");
 
 // ====================
 // Function definitions
@@ -200,15 +147,12 @@ function handleRegister($data) {
     }
 
     try {
-        $host = getenv('MYSQL_HOST');
-        $port = getenv('MYSQL_PORT');
-        $db   = getenv('MYSQL_DB');
-        $user = getenv('MYSQL_USER');
-        $pass = getenv('MYSQL_PASSWORD');
-
-        $dsn = "mysql:host=$host;port=$port;dbname=$db";
-        $pdo = new PDO($dsn, $user, $pass);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo = getDbConnection();
+        if (!$pdo) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Database connection failed']);
+            return;
+        }
 
         // Check if email already exists
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
@@ -244,6 +188,7 @@ function handleRegister($data) {
         ]);
         
     } catch (PDOException $e) {
+        error_log("Registration error: " . $e->getMessage());
         http_response_code(500);
         echo json_encode([
             'error'   => 'Registration failed',
@@ -260,15 +205,12 @@ function handleLogin($data) {
     }
 
     try {
-        $host = getenv('MYSQL_HOST');
-        $port = getenv('MYSQL_PORT');
-        $db   = getenv('MYSQL_DB');
-        $user = getenv('MYSQL_USER');
-        $pass = getenv('MYSQL_PASSWORD');
-
-        $dsn = "mysql:host=$host;port=$port;dbname=$db";
-        $pdo = new PDO($dsn, $user, $pass);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo = getDbConnection();
+        if (!$pdo) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Database connection failed']);
+            return;
+        }
 
         // Find user by email
         $stmt = $pdo->prepare("SELECT id, email, name, password_hash FROM users WHERE email = ?");
@@ -291,7 +233,7 @@ function handleLogin($data) {
         
         // Create JWT token
         $token = generateJWT(['id' => $user['id'], 'email' => $user['email']]);
-        error_log("Generated token: " . $token);
+        error_log("Login successful for user: " . $user['email']);
         
         echo json_encode([
             'success'      => true,
@@ -304,6 +246,7 @@ function handleLogin($data) {
         ]);
         
     } catch (PDOException $e) {
+        error_log("Login error: " . $e->getMessage());
         http_response_code(500);
         echo json_encode([
             'error'   => 'Login failed',
@@ -313,38 +256,25 @@ function handleLogin($data) {
 }
 
 function handleProfile() {
-    $headers = getallheaders();
-    $token = null;
-
-    if (isset($headers['Authorization'])) {
-        $auth_header = $headers['Authorization'];
-        if (strpos($auth_header, 'Bearer ') === 0) {
-            $token = substr($auth_header, 7);
-        }
-    }
-
-    if (!$token) {
+    $user = authenticateRequest();
+    
+    if (!$user) {
         http_response_code(401);
         echo json_encode(['error' => 'Authentication required']);
         return;
     }
 
     try {
-        $payload = verifyJWT($token);
-        
-        $host = getenv('MYSQL_HOST');
-        $port = getenv('MYSQL_PORT');
-        $db   = getenv('MYSQL_DB');
-        $user = getenv('MYSQL_USER');
-        $pass = getenv('MYSQL_PASSWORD');
-
-        $dsn = "mysql:host=$host;port=$port;dbname=$db";
-        $pdo = new PDO($dsn, $user, $pass);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo = getDbConnection();
+        if (!$pdo) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Database connection failed']);
+            return;
+        }
 
         // Get user details
         $stmt = $pdo->prepare("SELECT id, email, name, created_at FROM users WHERE id = ?");
-        $stmt->execute([$payload['id']]);
+        $stmt->execute([$user['id']]);
         
         if ($stmt->rowCount() === 0) {
             http_response_code(404);
@@ -352,24 +282,202 @@ function handleProfile() {
             return;
         }
         
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $userData = $stmt->fetch(PDO::FETCH_ASSOC);
         
         echo json_encode([
             'success' => true,
-            'user'    => $user
+            'user'    => $userData
         ]);
         
-    } catch (Exception $e) {
-        http_response_code(401);
+    } catch (PDOException $e) {
+        error_log("Profile fetch error: " . $e->getMessage());
+        http_response_code(500);
         echo json_encode([
-            'error'   => 'Invalid token',
+            'error'   => 'Failed to get profile',
             'message' => $e->getMessage()
         ]);
     }
 }
 
+function handleTemplateDownload() {
+    $user = authenticateRequest();
+    
+    if (!$user) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Authentication required']);
+        return;
+    }
+    
+    if (!isset($_GET['id'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Template ID is required']);
+        return;
+    }
+    
+    $template_id = $_GET['id'];
+    
+    // Get the static download URL
+    $download_url = getTemplateDownloadUrl($template_id);
+    if (!$download_url) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Template not found']);
+        return;
+    }
+    
+    try {
+        $pdo = getDbConnection();
+        if ($pdo) {
+            // Record download in database
+            $stmt = $pdo->prepare("INSERT INTO template_downloads (user_id, template_id, download_date) VALUES (?, ?, NOW())");
+            $stmt->execute([$user['id'], $template_id]);
+        }
+        
+        // File size calculation using the physical file in the downloads directory
+        $file_path = __DIR__ . $download_url;
+        $file_size = file_exists($file_path) ? filesize($file_path) : '1024 KB';
+        
+        echo json_encode([
+            'success'     => true,
+            'template_id' => $template_id,
+            'message'     => 'Template download ready',
+            'download_url'=> $download_url,
+            'size'        => $file_size
+        ]);
+    } catch (Exception $e) {
+        error_log("Download error: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode([
+            'error'   => 'Download failed',
+            'message' => $e->getMessage()
+        ]);
+    }
+}
+
+function getUserDownloads() {
+    $user = authenticateRequest();
+    
+    if (!$user) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Authentication required']);
+        return;
+    }
+    
+    try {
+        $pdo = getDbConnection();
+        if (!$pdo) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Database connection failed']);
+            return;
+        }
+        
+        // Get user download history
+        $stmt = $pdo->prepare("
+            SELECT td.template_id, t.name as template_name, td.download_date 
+            FROM template_downloads td
+            JOIN templates t ON td.template_id = t.id
+            WHERE td.user_id = ?
+            ORDER BY td.download_date DESC
+            LIMIT 10
+        ");
+        $stmt->execute([$user['id']]);
+        $downloads = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success'   => true,
+            'downloads' => $downloads
+        ]);
+    } catch (Exception $e) {
+        error_log("Failed to retrieve download history: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode([
+            'error'   => 'Failed to retrieve download history',
+            'message' => $e->getMessage()
+        ]);
+    }
+}
+
+function checkDatabaseStatus() {
+    try {
+        $pdo = getDbConnection();
+        if (!$pdo) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Database connection failed'
+            ]);
+            return;
+        }
+
+        // Get MySQL version
+        $stmt = $pdo->query("SELECT VERSION() AS version");
+        $version = $stmt->fetch(PDO::FETCH_ASSOC)['version'];
+
+        echo json_encode([
+            'success' => true,
+            'version' => $version,
+            'message' => 'Database connection successful',
+            'config'  => [
+                'host'     => getenv('MYSQL_HOST'),
+                'port'     => getenv('MYSQL_PORT'),
+                'database' => getenv('MYSQL_DB'),
+                'user'     => getenv('MYSQL_USER')
+            ]
+        ]);
+    } catch (PDOException $e) {
+        error_log("Database status check error: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error'   => $e->getMessage()
+        ]);
+    }
+}
+
 function getTemplates() {
-    // For now, return static template data
+    try {
+        $pdo = getDbConnection();
+        if (!$pdo) {
+            // Fallback to static data if database isn't available
+            provideStaticTemplates();
+            return;
+        }
+
+        $stmt = $pdo->query("SELECT id, name, description, category FROM templates");
+        $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Enhance with additional data
+        foreach ($templates as &$template) {
+            // Add sample tags based on description
+            $tags = [];
+            if (strpos($template['description'], 'PHP') !== false) $tags[] = 'php';
+            if (strpos($template['description'], 'MySQL') !== false) $tags[] = 'mysql';
+            if (strpos($template['description'], 'PostgreSQL') !== false) $tags[] = 'postgresql';
+            if (strpos($template['description'], 'MariaDB') !== false) $tags[] = 'mariadb';
+            if (strpos($template['description'], 'Nginx') !== false) $tags[] = 'nginx';
+            if (strpos($template['description'], 'React') !== false) $tags[] = 'react';
+            if (strpos($template['description'], 'Fullstack') !== false) $tags[] = 'fullstack';
+            
+            $template['tags'] = $tags;
+            
+            // Get download count
+            $stmt = $pdo->prepare("SELECT COUNT(*) as downloads FROM template_downloads WHERE template_id = ?");
+            $stmt->execute([$template['id']]);
+            $template['downloads'] = (int)$stmt->fetch(PDO::FETCH_ASSOC)['downloads'];
+        }
+        
+        echo json_encode([
+            'success'   => true,
+            'templates' => $templates
+        ]);
+    } catch (PDOException $e) {
+        error_log("Error fetching templates: " . $e->getMessage());
+        // Fallback to static data
+        provideStaticTemplates();
+    }
+}
+
+function provideStaticTemplates() {
+    // Static templates as fallback
     $templates = [
         [
             'id'          => 'php/nginx/mysql',
@@ -407,24 +515,6 @@ function getTemplates() {
     ]);
 }
 
-/**
- * Find the physical path for a template based on its ID.
- */
-function findTemplatePath($template_id) {
-    // Map template IDs to their file system paths
-    $templates = [
-        'php/nginx/mysql'                => __DIR__ . '/../templates/php/nginx/mysql',
-        'php/nginx/postgresql'           => __DIR__ . '/../templates/php/nginx/postgresql',
-        'php/nginx/mariadb'              => __DIR__ . '/../templates/php/nginx/mariadb',
-        'fullstack/react-php/mysql-nginx' => __DIR__ . '/../templates/fullstack/react-php/mysql-nginx',
-    ];
-    
-    return isset($templates[$template_id]) ? $templates[$template_id] : null;
-}
-
-/**
- * Map template IDs to their static download URLs.
- */
 function getTemplateDownloadUrl($template_id) {
     $templates = [
         'php/nginx/mysql'                => '/downloads/php-nginx-mysql.zip',
@@ -436,54 +526,13 @@ function getTemplateDownloadUrl($template_id) {
     return isset($templates[$template_id]) ? $templates[$template_id] : null;
 }
 
-function checkDatabaseStatus() {
-    try {
-        $host = getenv('MYSQL_HOST');
-        $port = getenv('MYSQL_PORT');
-        $db   = getenv('MYSQL_DB');
-        $user = getenv('MYSQL_USER');
-        $pass = getenv('MYSQL_PASSWORD');
-
-        $dsn = "mysql:host=$host;port=$port;dbname=$db";
-        $pdo = new PDO($dsn, $user, $pass);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        // Get MySQL version
-        $stmt = $pdo->query("SELECT VERSION() AS version");
-        $version = $stmt->fetch(PDO::FETCH_ASSOC)['version'];
-
-        echo json_encode([
-            'success' => true,
-            'version' => $version,
-            'message' => 'Database connection successful',
-            'config'  => [
-                'host'     => $host,
-                'port'     => $port,
-                'database' => $db,
-                'user'     => $user
-            ]
-        ]);
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode([
-            'success' => false,
-            'error'   => $e->getMessage(),
-            'config'  => [
-                'host'     => $host,
-                'port'     => $port,
-                'database' => $db,
-                'user'     => $user
-            ]
-        ]);
-    }
-}
-
 // JWT helper functions
 function generateJWT($payload) {
     $secret = getenv('JWT_SECRET') ?: 'your-secret-key';
     
     $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
-    $payload['exp'] = time() + (60 * 60); // 1 hour expiration
+    $payload['exp'] = time() + (60 * 60 * 24); // 24 hour expiration
+    $payload['iat'] = time(); // Issued at time
     $payload = json_encode($payload);
     
     $base64UrlHeader  = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
