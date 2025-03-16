@@ -46,30 +46,32 @@ jobs:
           
       - name: Adding Known Hosts
         run: ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-      
-      # Create a temporary archive to transfer files
-      - name: Create deployment archive
+        
+      - name: Set up remote directory
         run: |
-          tar -czf deploy.tar.gz --exclude='.git' --warning=no-file-changed .
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /var/www/chimerastack/backend/logs /var/www/chimerastack/backend/downloads"
       
-      # Transfer the archive instead of using rsync
-      - name: Transfer files to server
+      - name: Copy files via scp
         run: |
-          scp deploy.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~
-      
-      # Extract and deploy on the remote server
-      - name: Deploy on server
+          # Copy individual directories to avoid archiving issues
+          scp -r ./backend ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp -r ./frontend ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp -r ./nginx ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp -r ./database ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp -r ./config ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp -r ./.github ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          
+          # Copy individual files at root
+          scp ./docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp ./docker-compose.prod.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp ./.env.example ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp ./.env.production ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp ./README.md ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          scp ./LICENSE ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
+          
+      - name: Restart containers
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            mkdir -p ~/deployment_temp
-            tar -xzf ~/deploy.tar.gz -C ~/deployment_temp
-            mkdir -p /var/www/chimerastack/backend/logs /var/www/chimerastack/backend/downloads
-            cp -r ~/deployment_temp/* /var/www/chimerastack/
-            cd /var/www/chimerastack
-            docker-compose -f docker-compose.prod.yml down || true
-            docker-compose -f docker-compose.prod.yml up -d --build
-            rm -rf ~/deployment_temp ~/deploy.tar.gz
-          EOF
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /var/www/chimerastack && docker-compose -f docker-compose.prod.yml down || true && docker-compose -f docker-compose.prod.yml up -d --build"
 
       - name: Verify deployment
         run: |
