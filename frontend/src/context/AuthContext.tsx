@@ -34,8 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Set token in API headers
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
-          // Fetch user profile
-          const response = await api.get('/auth/profile');
+          // Fetch user profile using the relative path
+          const response = await api.get('auth/profile');
           
           if (response.data && response.data.success) {
             setUser(response.data.user);
@@ -60,7 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      const response = await api.post('/auth/login', credentials);
+      // Remove the leading slash so the baseURL concatenates properly
+      const response = await api.post('auth/login', credentials);
       
       if (response.data && response.data.success) {
         const { user, access_token } = response.data;
@@ -84,7 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: { email: string; password: string; name?: string }) => {
     try {
-      const response = await api.post('/auth/register', data);
+      // Use relative path to properly append to the baseURL
+      const response = await api.post('auth/register', data);
       
       if (response.data && response.data.success) {
         const { user, access_token } = response.data;
