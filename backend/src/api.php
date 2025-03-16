@@ -4,34 +4,40 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Get the request path
-$request = $_SERVER['REQUEST_URI'];
-$path = parse_url($request, PHP_URL_PATH);
+// Enhanced debugging
+error_log("========= REQUEST START =========");
+error_log("REQUEST URI: " . $_SERVER['REQUEST_URI']);
+error_log("REQUEST METHOD: " . $_SERVER['REQUEST_METHOD']);
+error_log("CONTENT TYPE: " . ($_SERVER['CONTENT_TYPE'] ?? 'Not set'));
+
+// Log headers
+$headers = getallheaders();
+error_log("REQUEST HEADERS: " . json_encode($headers));
+
+// Get JSON request body for POST requests
+$raw_input = file_get_contents('php://input');
+error_log("RAW INPUT: " . $raw_input);
+
+$json_data = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $json_data = json_decode($raw_input, true);
+    error_log("JSON DATA: " . json_encode($json_data));
+    
+    // Check for JSON errors
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log("JSON ERROR: " . json_last_error_msg());
+    }
+}
 
 // Improved path normalization
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path = trim($path, '/');
 if (strpos($path, 'api/') === 0) {
-    // Remove 'api/' prefix to get the actual endpoint
     $path = substr($path, 4);
 }
 
-// Debug information - can be removed in production
-error_log("Request URI: " . $request);
-error_log("Normalized path: " . $path);
-
-// Handle OPTIONS requests (CORS preflight)
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
-// Get JSON request body for POST requests
-$json_data = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $json_data = json_decode(file_get_contents('php://input'), true);
-}
-
-// Debug the received data
-error_log("JSON data: " . json_encode($json_data));
+error_log("NORMALIZED PATH: " . $path);
+error_log("========= REQUEST END =========");
 
 switch ($path) {
     case 'auth/register':
@@ -474,7 +480,7 @@ function checkDatabaseStatus() {
 
 // JWT helper functions
 function generateJWT($payload) {
-    $secret = 'your-secret-key'; // In production, use a secure environment variable
+    $secret = getenv('JWT_SECRET') ?: 'your-secret-key';
     
     $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
     $payload['exp'] = time() + (60 * 60); // 1 hour expiration
@@ -490,7 +496,7 @@ function generateJWT($payload) {
 }
 
 function verifyJWT($token) {
-    $secret = 'your-secret-key'; // Must match the secret used to generate the token
+    $secret = getenv('JWT_SECRET') ?: 'your-secret-key';
     
     $parts = explode('.', $token);
     if (count($parts) !== 3) {
