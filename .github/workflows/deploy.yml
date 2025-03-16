@@ -47,16 +47,30 @@ jobs:
       - name: Adding Known Hosts
         run: ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
       
-      - name: Ensure target directories have correct permissions
+      # Create a temporary archive to transfer files
+      - name: Create deployment archive
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /var/www/chimerastack/backend/logs /var/www/chimerastack/backend/downloads"
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} /var/www/chimerastack"
+          tar -czf deploy.tar.gz --exclude='.git' .
       
-      - name: Deploy to VPS
+      # Transfer the archive instead of using rsync
+      - name: Transfer files to server
         run: |
-          rsync -avz --exclude='.git/' --rsync-path="sudo rsync" ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /var/www/chimerastack && sudo docker-compose -f docker-compose.prod.yml down || true && sudo docker-compose -f docker-compose.prod.yml up -d --build"
+          scp deploy.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~
+      
+      # Extract and deploy on the remote server
+      - name: Deploy on server
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            mkdir -p ~/deployment_temp
+            tar -xzf ~/deploy.tar.gz -C ~/deployment_temp
+            mkdir -p /var/www/chimerastack/backend/logs /var/www/chimerastack/backend/downloads
+            cp -r ~/deployment_temp/* /var/www/chimerastack/
+            cd /var/www/chimerastack
+            docker-compose -f docker-compose.prod.yml down || true
+            docker-compose -f docker-compose.prod.yml up -d --build
+            rm -rf ~/deployment_temp ~/deploy.tar.gz
+          EOF
 
       - name: Verify deployment
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo docker ps | grep chimera || echo 'No chimera containers found'"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker ps | grep chimera || echo 'No chimera containers found'"
