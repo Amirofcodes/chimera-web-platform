@@ -8,11 +8,16 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization');
 $request = $_SERVER['REQUEST_URI'];
 $path = parse_url($request, PHP_URL_PATH);
 
-// Remove /api prefix
+// Improved path normalization
 $path = trim($path, '/');
 if (strpos($path, 'api/') === 0) {
+    // Remove 'api/' prefix to get the actual endpoint
     $path = substr($path, 4);
 }
+
+// Debug information - can be removed in production
+error_log("Request URI: " . $request);
+error_log("Normalized path: " . $path);
 
 // Handle OPTIONS requests (CORS preflight)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -24,6 +29,9 @@ $json_data = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $json_data = json_decode(file_get_contents('php://input'), true);
 }
+
+// Debug the received data
+error_log("JSON data: " . json_encode($json_data));
 
 switch ($path) {
     case 'auth/register':
@@ -162,10 +170,21 @@ switch ($path) {
             ]);
         }
         break;
+    case 'test':
+        // New test endpoint
+        echo json_encode(['success' => true, 'message' => 'Test endpoint working']);
+        break;
     default:
-        echo json_encode(['message' => 'Welcome to the API!']);
+        // Log the unmatched path
+        error_log("No route found for path: " . $path);
+        http_response_code(404);
+        echo json_encode(['error' => 'API endpoint not found', 'path' => $path]);
         break;
 }
+
+// ====================
+// Function definitions
+// ====================
 
 function handleRegister($data) {
     if (!$data || !isset($data['email']) || !isset($data['password'])) {
