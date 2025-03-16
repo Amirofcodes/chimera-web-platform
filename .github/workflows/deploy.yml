@@ -61,7 +61,7 @@ jobs:
           
       - name: Setup remote directories with proper permissions
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /var/www/chimerastack/backend/logs /var/www/chimerastack/backend/downloads && chmod -R 755 /var/www/chimerastack"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo mkdir -p /var/www/chimerastack/backend/logs /var/www/chimerastack/backend/downloads && sudo chmod -R 755 /var/www/chimerastack && sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} /var/www/chimerastack"
       
       - name: Deploy to server using rsync
         run: |
@@ -74,8 +74,8 @@ jobs:
       
       - name: Restart containers
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /var/www/chimerastack && docker-compose -f docker-compose.prod.yml down || true && docker-compose -f docker-compose.prod.yml up -d --build"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /var/www/chimerastack && sudo docker-compose -f docker-compose.prod.yml down || true && sudo docker-compose -f docker-compose.prod.yml up -d --build"
 
       - name: Verify deployment
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker ps | grep chimera || echo 'No chimera containers found'"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo docker ps | grep chimera || echo 'No chimera containers found'"
