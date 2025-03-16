@@ -50,32 +50,57 @@ jobs:
       - name: Install rsync
         run: sudo apt-get update && sudo apt-get install -y rsync
         
-      - name: Prepare deployment directories and files
+      - name: Clean up repository for deployment
         run: |
-          # Remove problematic directories that shouldn't be deployed
+          # Remove problematic directories
           rm -rf ./backend/logs/apt
           
-          # Ensure template zip files exist in downloads directory
+          # Create placeholder for downloads directory
           mkdir -p ./backend/downloads
           touch ./backend/downloads/.gitkeep
           
-      - name: Setup remote directories with proper permissions
+      # Use a pre-existing directory for temporary storage
+      - name: Deploy code to home directory first
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo mkdir -p /var/www/chimerastack/backend/logs /var/www/chimerastack/backend/downloads && sudo chmod -R 755 /var/www/chimerastack && sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} /var/www/chimerastack"
+          rsync -avz --exclude '.git/' \
+                     --exclude 'node_modules/' \
+                     --exclude '.env' \
+                     ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/chimerastack-deploy/
       
-      - name: Deploy to server using rsync
+      # Use script to deploy from home directory to web directory
+      - name: Move files to final location and restart containers
         run: |
-          rsync -avz --delete --exclude '.git' \
-                              --exclude '.github/workflows' \
-                              --exclude 'node_modules' \
-                              --exclude '.env' \
-                              --exclude '.DS_Store' \
-                              ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/chimerastack/
-      
-      - name: Restart containers
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /var/www/chimerastack && sudo docker-compose -f docker-compose.prod.yml down || true && sudo docker-compose -f docker-compose.prod.yml up -d --build"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            # Create deploy script
+            cat > ~/deploy.sh << 'EOL'
+            #!/bin/bash
+            set -e
+            
+            # Create necessary directories
+            mkdir -p /var/www/chimerastack/backend/logs
+            mkdir -p /var/www/chimerastack/backend/downloads
+            
+            # Copy files from home directory to web directory
+            cp -r ~/chimerastack-deploy/* /var/www/chimerastack/
+            cp -r ~/chimerastack-deploy/.github /var/www/chimerastack/
+            cp -r ~/chimerastack-deploy/.gitignore /var/www/chimerastack/ 2>/dev/null || true
+            
+            # Set proper permissions
+            chmod -R 755 /var/www/chimerastack
+            
+            # Restart containers
+            cd /var/www/chimerastack
+            docker-compose -f docker-compose.prod.yml down || true
+            docker-compose -f docker-compose.prod.yml up -d --build
+            EOL
+            
+            # Make script executable
+            chmod +x ~/deploy.sh
+            
+            # Run script with Docker permissions
+            ~/deploy.sh
+          "
 
       - name: Verify deployment
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo docker ps | grep chimera || echo 'No chimera containers found'"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker ps | grep chimera || echo 'No chimera containers found'"
