@@ -51,6 +51,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DB=${MYSQL_DB}
       - JWT_SECRET=${JWT_SECRET}
+      - PHP_DEBUG=true
     depends_on:
       - mysql
     networks:
