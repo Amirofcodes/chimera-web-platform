@@ -50,7 +50,7 @@ jobs:
       # Create a temporary archive to transfer files
       - name: Create deployment archive
         run: |
-          tar -czf deploy.tar.gz --exclude='.git' .
+          tar -czf deploy.tar.gz --exclude='.git' --warning=no-file-changed .
       
       # Transfer the archive instead of using rsync
       - name: Transfer files to server
