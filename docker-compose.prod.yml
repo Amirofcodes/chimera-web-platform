@@ -27,7 +27,7 @@ services:
     container_name: chimera_frontend
     environment:
       - NODE_ENV=production
-      - REACT_APP_API_URL=https://chimerastack.com/api
+      - REACT_APP_API_URL=https://chimerastack.com
     networks:
       - chimera_network
     restart: always
