@@ -58,55 +58,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, []);
 
-  const login = async (credentials: { email: string; password: string }) => {
-    try {
-      // Remove the leading slash so the baseURL concatenates properly
-      const response = await api.post('auth/login', credentials);
-      
-      if (response.data && response.data.success) {
-        const { user, access_token } = response.data;
-        
-        // Store token
-        localStorage.setItem('token', access_token);
-        
-        // Set auth header for future requests
-        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        
-        setUser(user);
-        setIsAuthenticated(true);
-      } else {
-        throw new Error(response.data.error || 'Login failed');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  };
 
-  const register = async (data: { email: string; password: string; name?: string }) => {
-    try {
-      // Use relative path to properly append to the baseURL
-      const response = await api.post('auth/register', data);
+// For register method:
+const register = async (data: { email: string; password: string; name?: string }) => {
+  try {
+    console.log('Registering user:', data.email);
+    // Remove leading slash to avoid double slashes in URL
+    const response = await api.post('auth/register', data);
+    
+    if (response.data && response.data.success) {
+      const { user, access_token } = response.data;
       
-      if (response.data && response.data.success) {
-        const { user, access_token } = response.data;
-        
-        // Store token
-        localStorage.setItem('token', access_token);
-        
-        // Set auth header for future requests
-        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        
-        setUser(user);
-        setIsAuthenticated(true);
-      } else {
-        throw new Error(response.data.error || 'Registration failed');
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+      // Store token
+      localStorage.setItem('token', access_token);
+      
+      // Set auth header for future requests
+      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      
+      setUser(user);
+      setIsAuthenticated(true);
+    } else {
+      throw new Error(response.data.error || 'Registration failed');
     }
-  };
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw error;
+  }
+};
+
+// For login method:
+const login = async (credentials: { email: string; password: string }) => {
+  try {
+    console.log('Logging in user:', credentials.email);
+    // Remove leading slash to avoid double slashes in URL
+    const response = await api.post('auth/login', credentials);
+    
+    if (response.data && response.data.success) {
+      const { user, access_token } = response.data;
+      
+      // Store token
+      localStorage.setItem('token', access_token);
+      
+      // Set auth header for future requests
+      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      
+      setUser(user);
+      setIsAuthenticated(true);
+    } else {
+      throw new Error(response.data.error || 'Login failed');
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
 
   const logout = () => {
     localStorage.removeItem('token');
