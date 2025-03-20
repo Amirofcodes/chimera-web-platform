@@ -16,90 +16,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// API path normalization for authentication
+// --- API Path Normalization ---
+
+// Log the original request URI for debugging
+error_log("Original REQUEST_URI: " . $_SERVER['REQUEST_URI']);
+
+// Parse the URI and remove leading/trailing slashes
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path = trim($path, '/');
 
-// Handle multiple possible path patterns
-if (strpos($path, 'api/auth/') === 0) {
-    // Remove 'api/' prefix from 'api/auth/login'
-    $path = substr($path, 4);
-} else if (strpos($path, 'auth/') === 0) {
-    // Already in correct format 'auth/login'
-    $path = $path;
-} else if (strpos($path, 'api/') === 0) {
-    // Remove 'api/' from other endpoints
+// Remove the "api/" prefix if present
+if (strpos($path, 'api/') === 0) {
     $path = substr($path, 4);
 }
 
-error_log("Normalized path: " . $path);
+// If the path is empty, default to the test endpoint
+if (empty($path)) {
+    $path = 'test';
+}
 
-// Get JSON request body for POST requests
+error_log("Normalized path: " . $path);
+error_log("REQUEST METHOD: " . $_SERVER['REQUEST_METHOD']);
+error_log("CONTENT TYPE: " . ($_SERVER['CONTENT_TYPE'] ?? 'Not set'));
+
+// Log all request headers for debugging
+$headers = getallheaders();
+error_log("REQUEST HEADERS: " . json_encode($headers));
+
+// Read raw JSON input for POST requests
 $raw_input = file_get_contents('php://input');
 error_log("RAW INPUT: " . $raw_input);
-
 $json_data = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $json_data = json_decode($raw_input, true);
     error_log("JSON DATA: " . json_encode($json_data));
-
-    // Check for JSON errors
     if (json_last_error() !== JSON_ERROR_NONE) {
         error_log("JSON ERROR: " . json_last_error_msg());
     }
 }
 
-// Database connection function
-function getDbConnection()
-{
-    $host = getenv('MYSQL_HOST');
-    $port = getenv('MYSQL_PORT');
-    $db   = getenv('MYSQL_DB');
-    $user = getenv('MYSQL_USER');
-    $pass = getenv('MYSQL_PASSWORD');
-
-    if (!$host || !$db || !$user || !$pass) {
-        error_log("Missing database environment variables");
-        return null;
-    }
-
-    try {
-        $dsn = "mysql:host=$host;port=$port;dbname=$db";
-        $pdo = new PDO($dsn, $user, $pass);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        return $pdo;
-    } catch (PDOException $e) {
-        error_log("Database connection error: " . $e->getMessage());
-        return null;
-    }
-}
-
-// Authentication helper
-function authenticateRequest()
-{
-    $headers = getallheaders();
-    $token = null;
-
-    if (isset($headers['Authorization'])) {
-        $auth_header = $headers['Authorization'];
-        if (strpos($auth_header, 'Bearer ') === 0) {
-            $token = substr($auth_header, 7);
-        }
-    }
-
-    if (!$token) {
-        return null;
-    }
-
-    try {
-        return verifyJWT($token);
-    } catch (Exception $e) {
-        error_log("Authentication error: " . $e->getMessage());
-        return null;
-    }
-}
-
-// Route requests
+// --- Route Requests Based on the Normalized Path ---
 switch ($path) {
     case 'auth/register':
         handleRegister($json_data);
@@ -127,7 +83,6 @@ switch ($path) {
         echo json_encode(['success' => true, 'message' => 'API is working']);
         break;
     default:
-        // Log the unmatched path
         error_log("No route found for path: " . $path);
         http_response_code(404);
         echo json_encode(['error' => 'API endpoint not found', 'path' => $path]);

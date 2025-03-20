@@ -53,6 +53,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DB=${MYSQL_DB}
       - JWT_SECRET=${JWT_SECRET}
+      - MINIMAL_API=1
     depends_on:
       - mysql
     networks:
@@ -82,16 +83,14 @@ services:
     restart: always
     healthcheck:
       test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "-p${MYSQL_ROOT_PASSWORD}",
-        ]
+        - CMD
+        - mysqladmin
+        - ping
+        - -h
+        - localhost
+        - -u
+        - root
+        - -p${MYSQL_ROOT_PASSWORD}
       interval: 10s
       timeout: 5s
       retries: 5

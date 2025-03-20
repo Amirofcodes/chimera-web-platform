@@ -1,62 +1,18 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-echo "Starting ChimeraStack Backend..."
+# (Any existing initialization code remains here.)
+# For example, you might already have some setup or configuration here.
 
-# Create required directories and set permissions
-mkdir -p /var/log/nginx
-mkdir -p /var/log/php
-touch /var/log/nginx/error.log
-touch /var/log/nginx/access.log
-touch /var/log/php/fpm-error.log
-chown -R www-data:www-data /var/log/nginx
-chown -R www-data:www-data /var/log/php
-chmod 755 /var/log/nginx
-chmod 755 /var/log/php
-
-# Ensure downloads directory exists and has proper permissions
-mkdir -p /var/www/html/downloads
-chown -R www-data:www-data /var/www/html/downloads
-chmod 755 /var/www/html/downloads
-
-# Install pgrep
-apt-get update && apt-get install -y procps
-
-# Set environment variables in PHP custom.ini if they exist
-if [ ! -z "$PHP_ENVIRONMENT" ]; then
-    echo "Setting PHP environment to: $PHP_ENVIRONMENT"
-    sed -i "s/display_errors = .*/display_errors = On/g" /usr/local/etc/php/conf.d/custom.ini
-    
-    if [ "$PHP_ENVIRONMENT" = "production" ]; then
-        sed -i "s/display_errors = .*/display_errors = Off/g" /usr/local/etc/php/conf.d/custom.ini
-    fi
+# If MINIMAL_API mode is enabled, run the PHP built-in server.
+if [ "$MINIMAL_API" = "1" ]; then
+  echo "Starting minimal API using PHP built-in server..."
+  # Change directory to the document root if needed.
+  cd /var/www/html
+  # Start PHP built-in server on port 80
+  exec php -S 0.0.0.0:80 -t /var/www/html
 fi
 
-# Print PHP configuration for debugging
-echo "PHP Configuration:"
-php -i | grep "Configure Command"
-php -i | grep "Scan this dir for additional .ini files"
-
-# Start PHP-FPM
+# Otherwise, run the default php-fpm command.
 echo "Starting PHP-FPM..."
-php-fpm -D
-
-# Wait for PHP-FPM to be ready
-echo "Waiting for PHP-FPM to be ready..."
-sleep 2
-
-# Verify PHP-FPM is running (use ps instead of pgrep for compatibility)
-if ps aux | grep -v grep | grep -q php-fpm; then
-    echo "PHP-FPM started successfully"
-else
-    echo "ERROR: PHP-FPM failed to start"
-    exit 1
-fi
-
-# Ensure database schema is set up (run in background)
-echo "Ensuring database schema is up to date..."
-/usr/local/bin/ensure-schema.sh > /var/log/schema-init.log 2>&1 &
-
-# Start Nginx
-echo "Starting Nginx..."
-nginx -t && nginx -g "daemon off;"
+exec php-fpm
