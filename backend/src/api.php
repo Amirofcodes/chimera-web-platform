@@ -16,40 +16,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Enhanced debugging for API path resolution
-error_log("Original REQUEST_URI: " . $_SERVER['REQUEST_URI']);
-
-// Improved path normalization
+// API path normalization for authentication
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path = trim($path, '/');
 
-// More robust API prefix handling
-// Check for both '/api/' and 'api/' prefixes
-if (strpos($path, 'api/') === 0) {
+// Handle multiple possible path patterns
+if (strpos($path, 'api/auth/') === 0) {
+    // Remove 'api/' prefix from 'api/auth/login'
     $path = substr($path, 4);
-} else if (strpos($path, 'api.php/') === 0) {
-    $path = substr($path, 8);
+} else if (strpos($path, 'auth/') === 0) {
+    // Already in correct format 'auth/login'
+    $path = $path;
+} else if (strpos($path, 'api/') === 0) {
+    // Remove 'api/' from other endpoints
+    $path = substr($path, 4);
 }
 
-// Ensure we don't have empty string after stripping prefixes
-if (empty($path)) {
-    $path = 'test'; // Default to test endpoint if empty
-}
-
-error_log("NORMALIZED PATH: " . $path);
-error_log("REQUEST METHOD: " . $_SERVER['REQUEST_METHOD']);
-error_log("CONTENT TYPE: " . ($_SERVER['CONTENT_TYPE'] ?? 'Not set'));
-
-// Log all request data for debugging
-$headers = getallheaders();
-error_log("REQUEST HEADERS: " . json_encode($headers));
-
-// Check if we have any Authorization header
-if (isset($headers['Authorization'])) {
-    error_log("Authorization header found: " . substr($headers['Authorization'], 0, 10) . "...");
-} else {
-    error_log("No Authorization header found");
-}
+error_log("Normalized path: " . $path);
 
 // Get JSON request body for POST requests
 $raw_input = file_get_contents('php://input');
