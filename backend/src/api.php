@@ -16,15 +16,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Enhanced debugging
-error_log("========= API REQUEST START =========");
-error_log("REQUEST URI: " . $_SERVER['REQUEST_URI']);
+// Enhanced debugging for API path resolution
+error_log("Original REQUEST_URI: " . $_SERVER['REQUEST_URI']);
+
+// Improved path normalization
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$path = trim($path, '/');
+
+// More robust API prefix handling
+// Check for both '/api/' and 'api/' prefixes
+if (strpos($path, 'api/') === 0) {
+    $path = substr($path, 4);
+} else if (strpos($path, 'api.php/') === 0) {
+    $path = substr($path, 8);
+}
+
+// Ensure we don't have empty string after stripping prefixes
+if (empty($path)) {
+    $path = 'test'; // Default to test endpoint if empty
+}
+
+error_log("NORMALIZED PATH: " . $path);
 error_log("REQUEST METHOD: " . $_SERVER['REQUEST_METHOD']);
 error_log("CONTENT TYPE: " . ($_SERVER['CONTENT_TYPE'] ?? 'Not set'));
 
-// Log headers
+// Log all request data for debugging
 $headers = getallheaders();
 error_log("REQUEST HEADERS: " . json_encode($headers));
+
+// Check if we have any Authorization header
+if (isset($headers['Authorization'])) {
+    error_log("Authorization header found: " . substr($headers['Authorization'], 0, 10) . "...");
+} else {
+    error_log("No Authorization header found");
+}
 
 // Get JSON request body for POST requests
 $raw_input = file_get_contents('php://input');
@@ -34,24 +59,16 @@ $json_data = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $json_data = json_decode($raw_input, true);
     error_log("JSON DATA: " . json_encode($json_data));
-    
+
     // Check for JSON errors
     if (json_last_error() !== JSON_ERROR_NONE) {
         error_log("JSON ERROR: " . json_last_error_msg());
     }
 }
 
-// Improved path normalization
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$path = trim($path, '/');
-if (strpos($path, 'api/') === 0) {
-    $path = substr($path, 4);
-}
-
-error_log("NORMALIZED PATH: " . $path);
-
 // Database connection function
-function getDbConnection() {
+function getDbConnection()
+{
     $host = getenv('MYSQL_HOST');
     $port = getenv('MYSQL_PORT');
     $db   = getenv('MYSQL_DB');
@@ -75,7 +92,8 @@ function getDbConnection() {
 }
 
 // Authentication helper
-function authenticateRequest() {
+function authenticateRequest()
+{
     $headers = getallheaders();
     $token = null;
 
@@ -139,7 +157,8 @@ error_log("========= API REQUEST END =========");
 // Function definitions
 // ====================
 
-function handleRegister($data) {
+function handleRegister($data)
+{
     if (!$data || !isset($data['email']) || !isset($data['password'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Email and password are required']);
@@ -157,26 +176,26 @@ function handleRegister($data) {
         // Check if email already exists
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$data['email']]);
-        
+
         if ($stmt->rowCount() > 0) {
             http_response_code(409);
             echo json_encode(['error' => 'Email already exists']);
             return;
         }
-        
+
         // Hash password
         $password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
-        
+
         // Insert new user
         $stmt = $pdo->prepare("INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)");
         $name = $data['name'] ?? null;
         $stmt->execute([$data['email'], $password_hash, $name]);
-        
+
         $userId = $pdo->lastInsertId();
-        
+
         // Create JWT token
         $token = generateJWT(['id' => $userId, 'email' => $data['email']]);
-        
+
         echo json_encode([
             'success'      => true,
             'user'         => [
@@ -186,7 +205,6 @@ function handleRegister($data) {
             ],
             'access_token' => $token
         ]);
-        
     } catch (PDOException $e) {
         error_log("Registration error: " . $e->getMessage());
         http_response_code(500);
@@ -197,7 +215,8 @@ function handleRegister($data) {
     }
 }
 
-function handleLogin($data) {
+function handleLogin($data)
+{
     if (!$data || !isset($data['email']) || !isset($data['password'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Email and password are required']);
@@ -215,36 +234,35 @@ function handleLogin($data) {
         // Find user by email
         $stmt = $pdo->prepare("SELECT id, email, name, password_hash FROM users WHERE email = ?");
         $stmt->execute([$data['email']]);
-        
+
         if ($stmt->rowCount() === 0) {
             http_response_code(401);
             echo json_encode(['error' => 'Invalid credentials']);
             return;
         }
-        
+
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         // Verify password
         if (!password_verify($data['password'], $user['password_hash'])) {
             http_response_code(401);
             echo json_encode(['error' => 'Invalid credentials']);
             return;
         }
-        
+
         // Create JWT token
         $token = generateJWT(['id' => $user['id'], 'email' => $user['email']]);
         error_log("Login successful for user: " . $user['email']);
-        
+
         echo json_encode([
             'success'      => true,
             'user'         => [
                 'id'    => $user['id'],
-                'email' => $user['email'], 
+                'email' => $user['email'],
                 'name'  => $user['name']
             ],
             'access_token' => $token
         ]);
-        
     } catch (PDOException $e) {
         error_log("Login error: " . $e->getMessage());
         http_response_code(500);
@@ -255,9 +273,10 @@ function handleLogin($data) {
     }
 }
 
-function handleProfile() {
+function handleProfile()
+{
     $user = authenticateRequest();
-    
+
     if (!$user) {
         http_response_code(401);
         echo json_encode(['error' => 'Authentication required']);
@@ -275,20 +294,19 @@ function handleProfile() {
         // Get user details
         $stmt = $pdo->prepare("SELECT id, email, name, created_at FROM users WHERE id = ?");
         $stmt->execute([$user['id']]);
-        
+
         if ($stmt->rowCount() === 0) {
             http_response_code(404);
             echo json_encode(['error' => 'User not found']);
             return;
         }
-        
+
         $userData = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         echo json_encode([
             'success' => true,
             'user'    => $userData
         ]);
-        
     } catch (PDOException $e) {
         error_log("Profile fetch error: " . $e->getMessage());
         http_response_code(500);
@@ -299,23 +317,24 @@ function handleProfile() {
     }
 }
 
-function handleTemplateDownload() {
+function handleTemplateDownload()
+{
     $user = authenticateRequest();
-    
+
     if (!$user) {
         http_response_code(401);
         echo json_encode(['error' => 'Authentication required']);
         return;
     }
-    
+
     if (!isset($_GET['id'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Template ID is required']);
         return;
     }
-    
+
     $template_id = $_GET['id'];
-    
+
     // Get the static download URL
     $download_url = getTemplateDownloadUrl($template_id);
     if (!$download_url) {
@@ -323,7 +342,7 @@ function handleTemplateDownload() {
         echo json_encode(['error' => 'Template not found']);
         return;
     }
-    
+
     try {
         $pdo = getDbConnection();
         if ($pdo) {
@@ -331,16 +350,16 @@ function handleTemplateDownload() {
             $stmt = $pdo->prepare("INSERT INTO template_downloads (user_id, template_id, download_date) VALUES (?, ?, NOW())");
             $stmt->execute([$user['id'], $template_id]);
         }
-        
+
         // File size calculation using the physical file in the downloads directory
         $file_path = __DIR__ . $download_url;
         $file_size = file_exists($file_path) ? filesize($file_path) : '1024 KB';
-        
+
         echo json_encode([
             'success'     => true,
             'template_id' => $template_id,
             'message'     => 'Template download ready',
-            'download_url'=> $download_url,
+            'download_url' => $download_url,
             'size'        => $file_size
         ]);
     } catch (Exception $e) {
@@ -353,15 +372,16 @@ function handleTemplateDownload() {
     }
 }
 
-function getUserDownloads() {
+function getUserDownloads()
+{
     $user = authenticateRequest();
-    
+
     if (!$user) {
         http_response_code(401);
         echo json_encode(['error' => 'Authentication required']);
         return;
     }
-    
+
     try {
         $pdo = getDbConnection();
         if (!$pdo) {
@@ -369,7 +389,7 @@ function getUserDownloads() {
             echo json_encode(['error' => 'Database connection failed']);
             return;
         }
-        
+
         // Get user download history
         $stmt = $pdo->prepare("
             SELECT td.template_id, t.name as template_name, td.download_date 
@@ -381,7 +401,7 @@ function getUserDownloads() {
         ");
         $stmt->execute([$user['id']]);
         $downloads = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         echo json_encode([
             'success'   => true,
             'downloads' => $downloads
@@ -396,7 +416,8 @@ function getUserDownloads() {
     }
 }
 
-function checkDatabaseStatus() {
+function checkDatabaseStatus()
+{
     try {
         $pdo = getDbConnection();
         if (!$pdo) {
@@ -433,7 +454,8 @@ function checkDatabaseStatus() {
     }
 }
 
-function getTemplates() {
+function getTemplates()
+{
     try {
         $pdo = getDbConnection();
         if (!$pdo) {
@@ -444,7 +466,7 @@ function getTemplates() {
 
         $stmt = $pdo->query("SELECT id, name, description, category FROM templates");
         $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         // Enhance with additional data
         foreach ($templates as &$template) {
             // Add sample tags based on description
@@ -456,15 +478,15 @@ function getTemplates() {
             if (strpos($template['description'], 'Nginx') !== false) $tags[] = 'nginx';
             if (strpos($template['description'], 'React') !== false) $tags[] = 'react';
             if (strpos($template['description'], 'Fullstack') !== false) $tags[] = 'fullstack';
-            
+
             $template['tags'] = $tags;
-            
+
             // Get download count
             $stmt = $pdo->prepare("SELECT COUNT(*) as downloads FROM template_downloads WHERE template_id = ?");
             $stmt->execute([$template['id']]);
             $template['downloads'] = (int)$stmt->fetch(PDO::FETCH_ASSOC)['downloads'];
         }
-        
+
         echo json_encode([
             'success'   => true,
             'templates' => $templates
@@ -476,7 +498,8 @@ function getTemplates() {
     }
 }
 
-function provideStaticTemplates() {
+function provideStaticTemplates()
+{
     // Static templates as fallback
     $templates = [
         [
@@ -508,65 +531,68 @@ function provideStaticTemplates() {
             'downloads'   => 1840
         ]
     ];
-    
+
     echo json_encode([
         'success'   => true,
         'templates' => $templates
     ]);
 }
 
-function getTemplateDownloadUrl($template_id) {
+function getTemplateDownloadUrl($template_id)
+{
     $templates = [
         'php/nginx/mysql'                => '/downloads/php-nginx-mysql.zip',
         'php/nginx/postgresql'           => '/downloads/php-nginx-postgresql.zip',
-        'php/nginx/mariadb'              => '/downloads/php-nginx-mariadb.zip', 
+        'php/nginx/mariadb'              => '/downloads/php-nginx-mariadb.zip',
         'fullstack/react-php/mysql-nginx' => '/downloads/fullstack-react-php-mysql.zip',
     ];
-    
+
     return isset($templates[$template_id]) ? $templates[$template_id] : null;
 }
 
 // JWT helper functions
-function generateJWT($payload) {
+function generateJWT($payload)
+{
     $secret = getenv('JWT_SECRET') ?: 'your-secret-key';
-    
+
     $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
     $payload['exp'] = time() + (60 * 60 * 24); // 24 hour expiration
     $payload['iat'] = time(); // Issued at time
     $payload = json_encode($payload);
-    
+
     $base64UrlHeader  = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
     $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
-    
+
     $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $secret, true);
     $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
-    
+
     return $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
 }
 
-function verifyJWT($token) {
+function verifyJWT($token)
+{
     $secret = getenv('JWT_SECRET') ?: 'your-secret-key';
-    
+
     $parts = explode('.', $token);
     if (count($parts) !== 3) {
         throw new Exception('Invalid token format');
     }
-    
+
     list($base64UrlHeader, $base64UrlPayload, $base64UrlSignature) = $parts;
-    
+
     $signature = base64_decode(str_replace(['-', '_'], ['+', '/'], $base64UrlSignature));
-    
+
     $valid_signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $secret, true);
-    
+
     if (!hash_equals($signature, $valid_signature)) {
         throw new Exception('Invalid token signature');
     }
-    
+
     $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $base64UrlPayload)), true);
-    
+
     if (isset($payload['exp']) && $payload['exp'] < time()) {
         throw new Exception('Token has expired');
     }
-    
+
     return $payload;
 }

@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   nginx:
@@ -44,6 +44,7 @@ services:
       - ./backend/src:/var/www/html
       - ./backend/logs:/var/log
       - ./backend/downloads:/var/www/html/downloads
+      - ./database/schema:/var/www/schema
     environment:
       - PHP_ENVIRONMENT=production
       - MYSQL_HOST=mysql
@@ -75,11 +76,22 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/schema:/var/www/schema
     networks:
       - chimera_network
     restart: always
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

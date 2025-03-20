@@ -53,6 +53,10 @@ else
     exit 1
 fi
 
+# Ensure database schema is set up (run in background)
+echo "Ensuring database schema is up to date..."
+/usr/local/bin/ensure-schema.sh > /var/log/schema-init.log 2>&1 &
+
 # Start Nginx
 echo "Starting Nginx..."
 nginx -t && nginx -g "daemon off;"

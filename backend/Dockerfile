@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     curl \
+    default-mysql-client \
     && docker-php-ext-install pdo_mysql \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd \
@@ -29,6 +30,9 @@ RUN mkdir -p /var/log/nginx \
     && chmod 755 /var/log/nginx \
     && chmod 755 /var/log/php
 
+# Create schema directory
+RUN mkdir -p /var/www/schema
+
 WORKDIR /var/www/html
 
 # Copy configuration files
@@ -37,6 +41,11 @@ COPY php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY php/custom.ini /usr/local/etc/php/conf.d/custom.ini
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Copy schema files
+COPY schema.sql /var/www/schema/
+COPY ensure-schema.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/ensure-schema.sh
 
 # Copy source code
 COPY src/ /var/www/html/

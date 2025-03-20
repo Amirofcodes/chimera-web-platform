@@ -35,3 +35,6 @@ codebase.md
 .aidigestignore
 chimera-web-platform_codebase.md
 backend/logs/apt
+backend_codebase.md
+frontend_codebase.md
+
