@@ -1,11 +1,9 @@
 name: CI/CD Pipeline
-
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
-
+    branches: [main]
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,8 +12,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies
         run: |
@@ -29,36 +27,30 @@ jobs:
         run: |
           cd frontend
           npm run tsc || npm run tsc --noEmit || echo "TypeScript check skipped"
-
   build-and-deploy:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: unnecessary
           if_key_exists: replace
-          
       - name: Adding Known Hosts
         run: ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-      
       - name: Install rsync
         run: sudo apt-get update && sudo apt-get install -y rsync
-        
       - name: Clean up repository for deployment
         run: |
           # Remove problematic directories
           rm -rf ./backend/logs/apt
-          
+
           # Create placeholder for downloads directory
           mkdir -p ./backend/downloads
           touch ./backend/downloads/.gitkeep
-          
       # Use a pre-existing directory for temporary storage
       - name: Deploy code to home directory first
         run: |
@@ -66,7 +58,6 @@ jobs:
                      --exclude 'node_modules/' \
                      --exclude '.env' \
                      ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/chimerastack-deploy/
-      
       # Use script to deploy from home directory to web directory
       - name: Move files to final location and restart containers
         run: |
@@ -80,10 +71,17 @@ jobs:
             mkdir -p /var/www/chimerastack/backend/logs
             mkdir -p /var/www/chimerastack/backend/downloads
             
+            # Clean up old nginx config before copying
+            rm -f /var/www/chimerastack/nginx/conf/default.conf
+            
             # Copy files from home directory to web directory
             cp -r ~/chimerastack-deploy/* /var/www/chimerastack/
             cp -r ~/chimerastack-deploy/.github /var/www/chimerastack/
             cp -r ~/chimerastack-deploy/.gitignore /var/www/chimerastack/ 2>/dev/null || true
+            
+            # Ensure the nginx config is properly copied
+            mkdir -p /var/www/chimerastack/nginx/conf
+            cp -f ~/chimerastack-deploy/nginx/conf/default.conf /var/www/chimerastack/nginx/conf/
             
             # Set proper permissions
             chmod -R 755 /var/www/chimerastack
@@ -100,7 +98,6 @@ jobs:
             # Run script with Docker permissions
             ~/deploy.sh
           "
-
       - name: Verify deployment
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker ps | grep chimera || echo 'No chimera containers found'"
