@@ -6,6 +6,18 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Add CORS headers for local development
+header('Access-Control-Allow-Origin: http://localhost:3000');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+// Handle preflight OPTIONS requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit();
+}
+
+
 header('Content-Type: application/json');
 
 // Log the request URI for debugging
@@ -217,7 +229,8 @@ error_log("========= API REQUEST END =========");
 /**
  * Establish a PDO database connection using environment variables.
  */
-function getDbConnection() {
+function getDbConnection()
+{
     $host = getenv('MYSQL_HOST');
     $port = getenv('MYSQL_PORT');
     $db   = getenv('MYSQL_DB');
@@ -244,7 +257,8 @@ function getDbConnection() {
  * Generate a simple JWT token.
  * For production, consider using a robust JWT library.
  */
-function generateJWT($payload) {
+function generateJWT($payload)
+{
     $secret = getenv('JWT_SECRET') ?: 'your-secret-key';
     $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
     $payload['exp'] = time() + (60 * 60 * 24); // 24-hour expiration
@@ -259,7 +273,8 @@ function generateJWT($payload) {
 /**
  * Verify a JWT token.
  */
-function verifyJWT($token) {
+function verifyJWT($token)
+{
     $secret = getenv('JWT_SECRET') ?: 'your-secret-key';
     $parts = explode('.', $token);
     if (count($parts) !== 3) {
@@ -281,7 +296,8 @@ function verifyJWT($token) {
 /**
  * Authenticate the request by verifying the JWT token in the Authorization header.
  */
-function authenticateRequest() {
+function authenticateRequest()
+{
     $headers = getallheaders();
     if (!isset($headers['Authorization'])) {
         return null;
@@ -302,7 +318,8 @@ function authenticateRequest() {
 /**
  * Retrieve the list of templates.
  */
-function getTemplates() {
+function getTemplates()
+{
     try {
         $pdo = getDbConnection();
         if (!$pdo) {
@@ -340,7 +357,8 @@ function getTemplates() {
 /**
  * Provide static templates if the database is unavailable.
  */
-function provideStaticTemplates() {
+function provideStaticTemplates()
+{
     $templates = [
         [
             'id'          => 'php/nginx/mysql',
@@ -381,7 +399,8 @@ function provideStaticTemplates() {
 /**
  * Handle template download requests.
  */
-function handleTemplateDownload() {
+function handleTemplateDownload()
+{
     $user = authenticateRequest();
     if (!$user) {
         http_response_code(401);
@@ -412,7 +431,7 @@ function handleTemplateDownload() {
             'success'     => true,
             'template_id' => $template_id,
             'message'     => 'Template download ready',
-            'download_url'=> $download_url,
+            'download_url' => $download_url,
             'size'        => $file_size
         ]);
     } catch (Exception $e) {
@@ -428,7 +447,8 @@ function handleTemplateDownload() {
 /**
  * Retrieve the user's download history.
  */
-function getUserDownloads() {
+function getUserDownloads()
+{
     $user = authenticateRequest();
     if (!$user) {
         http_response_code(401);
@@ -469,7 +489,8 @@ function getUserDownloads() {
 /**
  * Get the download URL for a given template ID.
  */
-function getTemplateDownloadUrl($template_id) {
+function getTemplateDownloadUrl($template_id)
+{
     $templates = [
         'php/nginx/mysql'                => '/downloads/php-nginx-mysql.zip',
         'php/nginx/postgresql'           => '/downloads/php-nginx-postgresql.zip',

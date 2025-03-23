@@ -18,6 +18,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - PHP_ENVIRONMENT=development
       - PHP_DEBUG=true
+      - MINIMAL_API=1
+    command: php -S 0.0.0.0:80 -t /var/www/html
     networks:
       - app_network
     ports:
