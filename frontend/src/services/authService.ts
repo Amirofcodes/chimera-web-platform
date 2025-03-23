@@ -12,5 +12,20 @@ export const authService = {
   
   changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
     await api.post('/auth/change-password', { currentPassword, newPassword });
-  }
+  },
+  // Add to src/services/authService.ts
+  uploadProfilePicture: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('profile_image', file);
+  
+    const response = await api.post('/auth/upload-profile-picture', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+  });
+  
+  return response.data.image_url;
+}
 };
+
+

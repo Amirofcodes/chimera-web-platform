@@ -352,6 +352,66 @@ switch ($path) {
         ]);
         break;
 
+    // Upload profile picture
+    case 'auth/upload-profile-picture':
+        $user = authenticateRequest();
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Authentication required']);
+            break;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
+            $file = $_FILES['profile_image'];
+
+            // Validate file type
+            $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!in_array($file['type'], $allowed_types)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Only JPG, PNG, and GIF images are allowed']);
+                break;
+            }
+
+            // Validate file size (max 2MB)
+            if ($file['size'] > 2 * 1024 * 1024) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Image size should not exceed 2MB']);
+                break;
+            }
+
+            // Generate unique filename
+            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $filename = 'user_' . $user['id'] . '_' . time() . '.' . $ext;
+            $upload_path = __DIR__ . '/uploads/profile/';
+
+            // Create directory if it doesn't exist
+            if (!file_exists($upload_path)) {
+                mkdir($upload_path, 0755, true);
+            }
+
+            // Move uploaded file
+            if (move_uploaded_file($file['tmp_name'], $upload_path . $filename)) {
+                // Update user profile in database
+                $pdo = getDbConnection();
+                $stmt = $pdo->prepare("UPDATE users SET profile_image = ? WHERE id = ?");
+                $image_url = '/uploads/profile/' . $filename;
+                $stmt->execute([$image_url, $user['id']]);
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Profile picture updated successfully',
+                    'image_url' => $image_url
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['error' => 'Failed to upload image']);
+            }
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'No image file provided']);
+        }
+        break;
+
     default:
         error_log("No route found for path: " . $path);
         http_response_code(404);

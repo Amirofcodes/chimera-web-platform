@@ -41,8 +41,12 @@ export const Navbar: React.FC = () => {
                     to="/profile" 
                     className="flex items-center text-gray-700 hover:text-blue-600 mr-3"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-2 text-sm">
-                      {user?.name?.charAt(0) || user?.email?.charAt(0) || '?'}
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-2 overflow-hidden">
+                      {user?.profile_image ? (
+                        <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm">{user?.name?.charAt(0) || user?.email?.charAt(0) || '?'}</span>
+                      )}
                     </div>
                     <span>{user?.name || user?.email}</span>
                   </Link>

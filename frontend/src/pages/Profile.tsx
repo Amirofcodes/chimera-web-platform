@@ -15,7 +15,7 @@ interface ProfileData {
 }
 
 const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [profileImage, setProfileImage] = useState<File | null>(null);
@@ -26,7 +26,7 @@ const ProfilePage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
-
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -35,6 +35,11 @@ const ProfilePage = () => {
         const response = await api.get('/auth/profile');
         if (response.data && response.data.success) {
           setProfileData(response.data.user);
+          
+          // Set profile image if available
+          if (response.data.user.profile_image) {
+            setProfileImageUrl(response.data.user.profile_image);
+          }
         }
       } catch (error) {
         console.error('Failed to load profile data:', error);
@@ -46,7 +51,7 @@ const ProfilePage = () => {
         setLoading(false);
       }
     };
-
+  
     fetchProfileData();
   }, []);
 
@@ -86,7 +91,6 @@ const ProfilePage = () => {
     }
   };
 
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -97,22 +101,37 @@ const ProfilePage = () => {
 
   const handleUpload = async () => {
     if (!profileImage) return;
-    
+  
     setLoading(true);
     setMessage(null);
-    
+  
     try {
       const formData = new FormData();
       formData.append('profile_image', profileImage);
       
-      // Simulating upload for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setMessage({
-        type: 'success',
-        text: 'Profile image updated successfully!'
+      const response = await api.post('/auth/upload-profile-picture', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
-    } catch (error) {
+      
+      if (response.data.success) {
+        setMessage({
+          type: 'success',
+          text: 'Profile image updated successfully!'
+        });
+        
+        // Force a refresh of user data
+        const profileResponse = await api.get('/auth/profile');
+        if (profileResponse.data && profileResponse.data.success) {
+          setProfileData(profileResponse.data.user);
+          if (profileResponse.data.user.profile_image) {
+            // Force reload to update navbar
+            window.location.reload();
+          }
+        }
+      }
+    } catch (error: any) {
       setMessage({
         type: 'error',
         text: 'Failed to update profile image'
@@ -145,6 +164,8 @@ const ProfilePage = () => {
             <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shadow-sm">
               {previewUrl ? (
                 <img src={previewUrl} alt="Profile preview" className="w-full h-full object-cover" />
+              ) : profileImageUrl ? (
+                <img src={profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-5xl text-gray-400">{userInitial}</span>
               )}

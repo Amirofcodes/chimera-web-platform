@@ -15,6 +15,9 @@ CREATE TABLE `users` (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Add to schema.sql
+ALTER TABLE users ADD COLUMN profile_image VARCHAR(255) NULL;
+
 -- Create password_reset_tokens table if it doesn't exist
 CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
     id INT AUTO_INCREMENT PRIMARY KEY,
