@@ -1,4 +1,4 @@
-// src/pages/Profile.tsx
+// src/pages/Profile.tsx with enhanced styling
 import React, { useState, useEffect } from 'react';
 import { Card } from '../components/shared/Card';
 import Button from '../components/shared/Button';
@@ -6,12 +6,42 @@ import { Spinner } from '../components/shared/Spinner';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
+interface ProfileData {
+  id: string;
+  email: string;
+  name?: string;
+  created_at?: string;
+}
+
 const ProfilePage = () => {
-  const { user, isAuthenticated } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/auth/profile');
+        if (response.data && response.data.success) {
+          setProfileData(response.data.user);
+        }
+      } catch (error) {
+        console.error('Failed to load profile data:', error);
+        setMessage({
+          type: 'error',
+          text: 'Failed to load profile data'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -27,7 +57,6 @@ const ProfilePage = () => {
     setLoading(true);
     setMessage(null);
     
-    // This would be replaced with actual API endpoint when implemented
     try {
       const formData = new FormData();
       formData.append('profile_image', profileImage);
@@ -49,6 +78,18 @@ const ProfilePage = () => {
     }
   };
 
+  if (loading && !profileData) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  // Combine local user data with API data, preferring API data
+  const userData = profileData || user;
+  const userInitial = userData?.name?.charAt(0)?.toUpperCase() || userData?.email?.charAt(0)?.toUpperCase() || '?';
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Your Profile</h1>
@@ -56,33 +97,36 @@ const ProfilePage = () => {
       <Card className="mb-6">
         <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
         <div className="flex flex-col md:flex-row">
-          <div className="md:w-1/3 mb-4 md:mb-0">
-            <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+          <div className="md:w-1/3 mb-4 md:mb-0 flex flex-col items-center">
+            <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shadow-sm">
               {previewUrl ? (
                 <img src={previewUrl} alt="Profile preview" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-4xl text-gray-400">{user?.name?.charAt(0) || user?.email?.charAt(0) || '?'}</span>
+                <span className="text-5xl text-gray-400">{userInitial}</span>
               )}
             </div>
             
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-2">Change Profile Picture</label>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-                onChange={handleFileChange}
-              />
+            <div className="mt-6 w-full">
+              <p className="text-sm font-medium mb-2">Change Profile Picture</p>
+              <label 
+                className="block w-full px-4 py-2 text-sm font-medium text-center text-blue-700 bg-blue-50 rounded cursor-pointer hover:bg-blue-100 transition-colors mb-2"
+              >
+                Choose File
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden"
+                  onChange={handleFileChange} 
+                />
+              </label>
+              <p className="text-xs text-center text-gray-500">
+                {profileImage ? profileImage.name : "No file selected"}
+              </p>
               
               {profileImage && (
                 <Button 
                   variant="primary" 
-                  className="mt-2" 
+                  className="mt-4 w-full" 
                   onClick={handleUpload}
                   isLoading={loading}
                 >
@@ -98,22 +142,24 @@ const ProfilePage = () => {
             </div>
           </div>
           
-          <div className="md:w-2/3">
-            <div className="space-y-4">
+          <div className="md:w-2/3 md:pl-8">
+            <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
-                <div className="p-2 bg-gray-50 rounded">{user?.email}</div>
+                <div className="p-3 bg-gray-50 rounded-md border border-gray-100">{userData?.email}</div>
               </div>
               
               <div>
                 <label className="block text-sm font-medium mb-1">Name</label>
-                <div className="p-2 bg-gray-50 rounded">{user?.name || 'Not provided'}</div>
+                <div className="p-3 bg-gray-50 rounded-md border border-gray-100">{userData?.name || 'Not provided'}</div>
               </div>
               
               <div>
                 <label className="block text-sm font-medium mb-1">Account Created</label>
-                <div className="p-2 bg-gray-50 rounded">
-                  {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
+                <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                  {userData?.created_at 
+                    ? new Date(userData.created_at).toLocaleDateString() 
+                    : 'Unknown'}
                 </div>
               </div>
             </div>

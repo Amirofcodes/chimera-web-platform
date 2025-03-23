@@ -1,3 +1,4 @@
+// src/components/layout/Navbar.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -29,27 +30,28 @@ export const Navbar: React.FC = () => {
             
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className="text-gray-700 hover:text-blue-600 mr-4">
-                  Profile
-                </Link>
                 <Link to="/templates" className="text-gray-700 hover:text-blue-600">
                   Templates
                 </Link>
                 <Link to="/dashboard" className="text-gray-700 hover:text-blue-600">
                   Dashboard
                 </Link>
-                <div className="relative ml-3">
-                  <div className="flex items-center">
-                    <span className="text-gray-700 mr-2">
-                      {user?.name || user?.email}
-                    </span>
-                    <button
-                      onClick={handleLogout}
-                      className="text-red-600 hover:text-red-800 text-sm"
-                    >
-                      Logout
-                    </button>
-                  </div>
+                <div className="relative ml-3 flex items-center">
+                  <Link 
+                    to="/profile" 
+                    className="flex items-center text-gray-700 hover:text-blue-600 mr-3"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-2 text-sm">
+                      {user?.name?.charAt(0) || user?.email?.charAt(0) || '?'}
+                    </div>
+                    <span>{user?.name || user?.email}</span>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="text-red-600 hover:text-red-800 text-sm"
+                  >
+                    Logout
+                  </button>
                 </div>
               </>
             ) : (
@@ -110,13 +112,6 @@ export const Navbar: React.FC = () => {
             {isAuthenticated ? (
               <>
                 <Link 
-                  to="/profile" 
-                  className="block py-2 text-gray-700 hover:text-blue-600"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Profile
-                </Link>
-                <Link 
                   to="/templates" 
                   className="block py-2 text-gray-700 hover:text-blue-600"
                   onClick={() => setMobileMenuOpen(false)}
@@ -130,6 +125,13 @@ export const Navbar: React.FC = () => {
                 >
                   Dashboard
                 </Link>
+                <Link 
+                  to="/profile" 
+                  className="block py-2 text-gray-700 hover:text-blue-600"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Profile ({user?.name || user?.email})
+                </Link>
                 <button
                   onClick={() => {
                     handleLogout();
@@ -137,7 +139,7 @@ export const Navbar: React.FC = () => {
                   }}
                   className="block w-full text-left py-2 text-red-600 hover:text-red-800"
                 >
-                  Logout ({user?.name || user?.email})
+                  Logout
                 </button>
               </>
             ) : (
