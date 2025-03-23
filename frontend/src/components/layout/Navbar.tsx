@@ -29,6 +29,9 @@ export const Navbar: React.FC = () => {
             
             {isAuthenticated ? (
               <>
+                <Link to="/profile" className="text-gray-700 hover:text-blue-600 mr-4">
+                  Profile
+                </Link>
                 <Link to="/templates" className="text-gray-700 hover:text-blue-600">
                   Templates
                 </Link>
@@ -106,6 +109,13 @@ export const Navbar: React.FC = () => {
             
             {isAuthenticated ? (
               <>
+                <Link 
+                  to="/profile" 
+                  className="block py-2 text-gray-700 hover:text-blue-600"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Profile
+                </Link>
                 <Link 
                   to="/templates" 
                   className="block py-2 text-gray-700 hover:text-blue-600"
