@@ -17,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-
 header('Content-Type: application/json');
 
 // Log the request URI for debugging
@@ -183,6 +182,142 @@ switch ($path) {
         ]);
         break;
 
+    // Password reset request handler
+    case 'auth/request-reset':
+        // Check if it's a POST request with email
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($json_data['email'])) {
+            $email = $json_data['email'];
+
+            // Check if user exists
+            $pdo = getDbConnection();
+            $stmt = $pdo->prepare("SELECT id, email FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+
+            // Always return success even if email not found (security best practice)
+            if ($stmt->rowCount() > 0) {
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                // Generate reset token
+                $token = bin2hex(random_bytes(32));
+                $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+                // Store token in database
+                $storeToken = $pdo->prepare("INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)");
+                $storeToken->execute([$user['id'], $token, $expires]);
+
+                // In a real app, send an email with reset link
+                // For now, just log it
+                error_log("Password reset token for {$email}: {$token}");
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'If an account exists with that email, a reset link has been sent'
+            ]);
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'Email is required']);
+        }
+        break;
+
+    // Reset password with token
+    case 'auth/reset-password':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($json_data['token']) && isset($json_data['password'])) {
+            $token = $json_data['token'];
+            $password = $json_data['password'];
+
+            // Validate password (min 8 chars)
+            if (strlen($password) < 8) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Password must be at least 8 characters']);
+                break;
+            }
+
+            $pdo = getDbConnection();
+
+            // Find valid token
+            $stmt = $pdo->prepare("
+                SELECT t.user_id, t.token, u.email 
+                FROM password_reset_tokens t
+                JOIN users u ON t.user_id = u.id
+                WHERE t.token = ? AND t.expires_at > NOW() AND t.used = 0
+            ");
+            $stmt->execute([$token]);
+
+            if ($stmt->rowCount() === 0) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid or expired token']);
+                break;
+            }
+
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $user_id = $result['user_id'];
+
+            // Update user's password
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+            $updateStmt = $pdo->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+            $updateStmt->execute([$password_hash, $user_id]);
+
+            // Mark token as used
+            $markUsed = $pdo->prepare("UPDATE password_reset_tokens SET used = 1 WHERE token = ?");
+            $markUsed->execute([$token]);
+
+            echo json_encode(['success' => true, 'message' => 'Password has been reset successfully']);
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'Token and new password are required']);
+        }
+        break;
+
+    // Change password (authenticated endpoint)
+    case 'auth/change-password':
+        $user = authenticateRequest();
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Authentication required']);
+            break;
+        }
+
+        if (
+            $_SERVER['REQUEST_METHOD'] === 'POST' &&
+            isset($json_data['currentPassword']) &&
+            isset($json_data['newPassword'])
+        ) {
+
+            $currentPassword = $json_data['currentPassword'];
+            $newPassword = $json_data['newPassword'];
+
+            // Validate new password (min 8 chars)
+            if (strlen($newPassword) < 8) {
+                http_response_code(400);
+                echo json_encode(['error' => 'New password must be at least 8 characters']);
+                break;
+            }
+
+            $pdo = getDbConnection();
+            $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE id = ?");
+            $stmt->execute([$user['id']]);
+            $userData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Verify current password
+            if (!password_verify($currentPassword, $userData['password_hash'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Current password is incorrect']);
+                break;
+            }
+
+            // Update password
+            $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $updateStmt = $pdo->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+            $updateStmt->execute([$newHash, $user['id']]);
+
+            echo json_encode(['success' => true, 'message' => 'Password updated successfully']);
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'Current password and new password are required']);
+        }
+        break;
+
     case 'templates':
         // Public endpoint: list templates
         getTemplates();
@@ -331,13 +466,27 @@ function getTemplates()
         // Enhance templates with additional data
         foreach ($templates as &$template) {
             $tags = [];
-            if (strpos($template['description'], 'PHP') !== false) $tags[] = 'php';
-            if (strpos($template['description'], 'MySQL') !== false) $tags[] = 'mysql';
-            if (strpos($template['description'], 'PostgreSQL') !== false) $tags[] = 'postgresql';
-            if (strpos($template['description'], 'MariaDB') !== false) $tags[] = 'mariadb';
-            if (strpos($template['description'], 'Nginx') !== false) $tags[] = 'nginx';
-            if (strpos($template['description'], 'React') !== false) $tags[] = 'react';
-            if (strpos($template['description'], 'Fullstack') !== false) $tags[] = 'fullstack';
+            if (strpos($template['description'], 'PHP') !== false) {
+                $tags[] = 'php';
+            }
+            if (strpos($template['description'], 'MySQL') !== false) {
+                $tags[] = 'mysql';
+            }
+            if (strpos($template['description'], 'PostgreSQL') !== false) {
+                $tags[] = 'postgresql';
+            }
+            if (strpos($template['description'], 'MariaDB') !== false) {
+                $tags[] = 'mariadb';
+            }
+            if (strpos($template['description'], 'Nginx') !== false) {
+                $tags[] = 'nginx';
+            }
+            if (strpos($template['description'], 'React') !== false) {
+                $tags[] = 'react';
+            }
+            if (strpos($template['description'], 'Fullstack') !== false) {
+                $tags[] = 'fullstack';
+            }
             $template['tags'] = $tags;
             // Get download count
             $stmtCount = $pdo->prepare("SELECT COUNT(*) as downloads FROM template_downloads WHERE template_id = ?");
@@ -428,11 +577,11 @@ function handleTemplateDownload()
         $file_path = __DIR__ . $download_url;
         $file_size = file_exists($file_path) ? filesize($file_path) : '1024 KB';
         echo json_encode([
-            'success'     => true,
-            'template_id' => $template_id,
-            'message'     => 'Template download ready',
+            'success'      => true,
+            'template_id'  => $template_id,
+            'message'      => 'Template download ready',
             'download_url' => $download_url,
-            'size'        => $file_size
+            'size'         => $file_size
         ]);
     } catch (Exception $e) {
         error_log("Download error: " . $e->getMessage());

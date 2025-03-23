@@ -5,6 +5,7 @@ import Button from '../components/shared/Button';
 import { Spinner } from '../components/shared/Spinner';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { authService } from '../services/authService';
 
 interface ProfileData {
   id: string;
@@ -64,8 +65,7 @@ const ProfilePage = () => {
     setPasswordMessage(null);
     
     try {
-      // Implement actual API call when backend is ready
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await authService.changePassword(currentPassword, newPassword);
       
       setPasswordMessage({
         type: 'success',
@@ -76,10 +76,10 @@ const ProfilePage = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (error) {
+    } catch (error: any) {
       setPasswordMessage({
         type: 'error',
-        text: 'Failed to update password'
+        text: error.response?.data?.error || 'Failed to update password'
       });
     } finally {
       setPasswordLoading(false);

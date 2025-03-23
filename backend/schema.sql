@@ -15,6 +15,17 @@ CREATE TABLE `users` (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create password_reset_tokens table if it doesn't exist
+CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(64) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 -- Create templates table
 CREATE TABLE `templates` (
     id VARCHAR(255) PRIMARY KEY,
