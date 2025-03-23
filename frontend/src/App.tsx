@@ -12,6 +12,8 @@ import ProfilePage from "./pages/Profile";
 import TemplatesListPage from "./pages/Templates/TemplatesList";
 import TemplateDetailPage from "./pages/Templates/TemplateDetail";
 import PrivateRoute from "./components/auth/PrivateRoute";
+import ForgotPasswordPage from "./pages/Auth/ForgotPassword";
+import ResetPasswordPage from "./pages/Auth/ResetPassword";
 
 const App = () => {
   return (
@@ -20,6 +22,8 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           
           <Route path="/" element={<MainLayout />}>
             <Route path="download-cli" element={<CliDownloadPage />} />

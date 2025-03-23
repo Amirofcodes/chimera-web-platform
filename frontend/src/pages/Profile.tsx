@@ -20,6 +20,12 @@ const ProfilePage = () => {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -42,6 +48,44 @@ const ProfilePage = () => {
 
     fetchProfileData();
   }, []);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({
+        type: 'error',
+        text: 'New passwords do not match'
+      });
+      return;
+    }
+    
+    setPasswordLoading(true);
+    setPasswordMessage(null);
+    
+    try {
+      // Implement actual API call when backend is ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setPasswordMessage({
+        type: 'success',
+        text: 'Password updated successfully'
+      });
+      
+      // Clear form
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      setPasswordMessage({
+        type: 'error',
+        text: 'Failed to update password'
+      });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -166,6 +210,62 @@ const ProfilePage = () => {
           </div>
         </div>
       </Card>
+
+      <Card className="mb-6">
+       <h2 className="text-xl font-semibold mb-4">Change Password</h2>
+       <form onSubmit={handlePasswordChange}>
+         <div className="space-y-4">
+           <div>
+             <label className="block text-sm font-medium mb-1">Current Password</label>
+             <input
+               type="password"
+               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+               value={currentPassword}
+               onChange={(e) => setCurrentPassword(e.target.value)}
+               required
+             />
+           </div>
+      
+           <div>
+             <label className="block text-sm font-medium mb-1">New Password</label>
+             <input
+               type="password"
+               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+               value={newPassword}
+               onChange={(e) => setNewPassword(e.target.value)}
+               required
+               minLength={8}
+             />
+           </div>
+      
+           <div>
+             <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+             <input
+               type="password"
+               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+               value={confirmPassword}
+               onChange={(e) => setConfirmPassword(e.target.value)}
+               required
+               minLength={8}
+             />
+           </div>
+      
+           {passwordMessage && (
+             <div className={`text-sm ${passwordMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+               {passwordMessage.text}
+             </div>
+           )}
+      
+           <Button
+             variant="primary"
+             type="submit"
+             isLoading={passwordLoading}
+           >
+             Update Password
+           </Button>
+         </div>
+       </form>
+     </Card>
     </div>
   );
 };
