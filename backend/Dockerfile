@@ -9,17 +9,16 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     curl \
-    default-mysql-client \
     && docker-php-ext-install pdo_mysql \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure PHP and PHP-FPM
-RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+# Configure PHP for production
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Create necessary directories for logs
+# Create necessary directories for logs and set permissions
 RUN mkdir -p /var/log/nginx \
     && mkdir -p /var/log/php \
     && touch /var/log/nginx/error.log \
@@ -30,9 +29,6 @@ RUN mkdir -p /var/log/nginx \
     && chmod 755 /var/log/nginx \
     && chmod 755 /var/log/php
 
-# Create schema directory
-RUN mkdir -p /var/www/schema
-
 WORKDIR /var/www/html
 
 # Copy configuration files
@@ -42,13 +38,19 @@ COPY php/custom.ini /usr/local/etc/php/conf.d/custom.ini
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Copy schema files
-COPY schema.sql /var/www/schema/
-COPY ensure-schema.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/ensure-schema.sh
+# Note: Schema initialization is now managed by the MySQL container,
+# so we no longer copy schema.sql or ensure-schema.sh into the backend image.
 
-# Copy source code
+# Copy application source code
 COPY src/ /var/www/html/
+
+# Create uploads directory for profile images and ensure proper permissions
+RUN mkdir -p /var/www/html/uploads/profile && \
+    chown -R www-data:www-data /var/www/html/uploads
+
+# Create downloads directory and set permissions
+RUN mkdir -p /var/www/html/downloads && \
+    chown -R www-data:www-data /var/www/html/downloads
 
 EXPOSE 80
 

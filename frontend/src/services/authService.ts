@@ -3,18 +3,22 @@ import api from './api';
 
 export const authService = {
   requestPasswordReset: async (email: string): Promise<void> => {
+    // console.log(`[API] Calling /auth/request-reset`, { email });
     await api.post('/auth/request-reset', { email });
   },
   
   resetPassword: async (token: string, newPassword: string): Promise<void> => {
+    // console.log(`[API] Calling /auth/reset-password`, { token, password: newPassword });
     await api.post('/auth/reset-password', { token, password: newPassword });
   },
   
   changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    // console.log(`[API] Calling /auth/change-password`, { currentPassword, newPassword });
     await api.post('/auth/change-password', { currentPassword, newPassword });
   },
-  // Add to src/services/authService.ts
+  
   uploadProfilePicture: async (file: File): Promise<string> => {
+    // console.log(`[API] Calling /auth/upload-profile-picture`, { file });
     const formData = new FormData();
     formData.append('profile_image', file);
   
@@ -22,10 +26,8 @@ export const authService = {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
-  });
+    });
   
-  return response.data.image_url;
-}
+    return response.data.image_url;
+  }
 };
-
-

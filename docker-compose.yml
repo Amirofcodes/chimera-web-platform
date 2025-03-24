@@ -2,6 +2,7 @@ networks:
   app_network:
     driver: bridge
     name: chimera-web-platform_network
+
 services:
   backend:
     build:
@@ -23,11 +24,12 @@ services:
     networks:
       - app_network
     ports:
-      - 8000:80
+      - "8000:80"
     volumes:
       - ./backend/src:/var/www/html
       - ./backend/logs:/var/log
       - ./backend/downloads:/var/www/html/downloads
+      # Optional: if your app does not need direct access to schema files, you can remove this mount.
       - ./database/schema:/var/www/schema
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/test.php"]
@@ -35,6 +37,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
   frontend:
     build:
       context: ./frontend
@@ -54,42 +57,36 @@ services:
     networks:
       - app_network
     ports:
-      - 3000:3000
+      - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
+
   mysql:
     container_name: chimera-web-platform-mysql
+    image: mysql:8.0
     environment:
       MYSQL_DATABASE: ${MYSQL_DB}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_USER: ${MYSQL_USER}
-    image: mysql:8.0
     networks:
       - app_network
     ports:
-      - 3300:3306
+      - "3300:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      # Mount unified initialization scripts for database creation.
       - ./database/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "-p${MYSQL_ROOT_PASSWORD}",
-        ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 3s
       retries: 3
+
   phpmyadmin:
     container_name: chimera-web-platform-phpmyadmin
+    image: phpmyadmin/phpmyadmin
     depends_on:
       - mysql
     environment:
@@ -97,11 +94,11 @@ services:
       PMA_PASSWORD: ${MYSQL_PASSWORD}
       PMA_USER: ${MYSQL_USER}
       UPLOAD_LIMIT: 50M
-    image: phpmyadmin/phpmyadmin
     networks:
       - app_network
     ports:
-      - 8081:80
+      - "8081:80"
+
 volumes:
   mysql_data:
     driver: local

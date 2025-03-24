@@ -1,4 +1,4 @@
-// frontend/src/context/AuthContext.tsx
+// src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
@@ -34,22 +34,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (token) {
         try {
-          // Set token in API headers
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          
-          // Fetch user profile using the relative path
           const response = await api.get('auth/profile');
           
           if (response.data && response.data.success) {
             setUser(response.data.user);
             setIsAuthenticated(true);
           } else {
-            // If profile fetch fails, clear token
             localStorage.removeItem('token');
             delete api.defaults.headers.common['Authorization'];
           }
         } catch (error) {
-          console.error('Authentication check failed:', error);
+          // console.error('Authentication check failed:', error);
           localStorage.removeItem('token');
           delete api.defaults.headers.common['Authorization'];
         }
@@ -64,53 +60,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // For register method:
   const register = async (data: { email: string; password: string; name?: string }) => {
     try {
-      console.log('Registering user:', data.email);
-      // Remove leading slash to avoid double slashes in URL
+      // console.log('Registering user:', data.email);
       const response = await api.post('auth/register', data);
       
       if (response.data && response.data.success) {
         const { user, access_token } = response.data;
-        
-        // Store token
         localStorage.setItem('token', access_token);
-        
-        // Set auth header for future requests
         api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        
         setUser(user);
         setIsAuthenticated(true);
       } else {
         throw new Error(response.data.error || 'Registration failed');
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      // console.error('Registration error:', error);
       throw error;
     }
   };
 
-  // For login method:
+  // Updated login method with enhanced error handling for the modular backend
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      console.log('Logging in user:', credentials.email);
-      // Remove leading slash to avoid double slashes in URL
+      // console.log('Logging in user:', credentials.email);
       const response = await api.post('auth/login', credentials);
       
       if (response.data && response.data.success) {
         const { user, access_token } = response.data;
-        
-        // Store token
         localStorage.setItem('token', access_token);
-        
-        // Set auth header for future requests
         api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        
         setUser(user);
         setIsAuthenticated(true);
       } else {
         throw new Error(response.data.error || 'Login failed');
       }
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (error: any) {
+      // console.error('Login error:', error);
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
       throw error;
     }
   };
@@ -122,9 +109,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthenticated(false);
   };
 
-  // Add updateUserProfile to update user context
+  // Update user profile data in context
   const updateUserProfile = (updates: Partial<User>) => {
-    setUser(prev => prev ? { ...prev, ...updates } : null);
+    setUser(prev => (prev ? { ...prev, ...updates } : null));
   };
 
   return (
