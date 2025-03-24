@@ -1,3 +1,4 @@
+// src/pages/Dashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { Card } from '../components/shared/Card';
 import { useAuth } from '../context/AuthContext';
@@ -37,12 +38,7 @@ const DashboardPage = () => {
         <p>Manage your development environments and templates from this dashboard.</p>
       </Card>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <Card>
-          <h3 className="text-lg font-bold mb-2">Active Environments</h3>
-          <p className="text-2xl font-semibold">0</p>
-        </Card>
-        
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card>
           <h3 className="text-lg font-bold mb-2">Recent Templates</h3>
           {loading ? (
@@ -63,11 +59,24 @@ const DashboardPage = () => {
         </Card>
         
         <Card>
-          <h3 className="text-lg font-bold mb-2">System Status</h3>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-            <span>All systems operational</span>
-          </div>
+          <h3 className="text-lg font-bold mb-2">Quick Links</h3>
+          <ul className="divide-y">
+            <li className="py-2">
+              <Link to="/profile" className="text-blue-600 hover:underline">
+                Edit Your Profile
+              </Link>
+            </li>
+            <li className="py-2">
+              <Link to="/templates" className="text-blue-600 hover:underline">
+                Browse All Templates
+              </Link>
+            </li>
+            <li className="py-2">
+              <Link to="/download-cli" className="text-blue-600 hover:underline">
+                Download CLI Tool
+              </Link>
+            </li>
+          </ul>
         </Card>
       </div>
       

@@ -13,6 +13,11 @@ if [ "$MINIMAL_API" = "1" ]; then
   exec php -S 0.0.0.0:80 -t /var/www/html
 fi
 
+if [ "${INIT_DB:-0}" = "1" ]; then
+  echo "Initializing database schema..."
+  ensure-schema.sh
+fi
+
 # Otherwise, run the default php-fpm command.
 echo "Starting PHP-FPM..."
 exec php-fpm

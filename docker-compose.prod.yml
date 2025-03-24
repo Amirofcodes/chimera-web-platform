@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   nginx:
     image: nginx:alpine
@@ -44,6 +42,7 @@ services:
       - ./backend/src:/var/www/html
       - ./backend/logs:/var/log
       - ./backend/downloads:/var/www/html/downloads
+      # Optional: remove this mount if the backend does not need direct access to the schema.
       - ./database/schema:/var/www/schema
     environment:
       - PHP_ENVIRONMENT=production
@@ -77,6 +76,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./database/init:/docker-entrypoint-initdb.d
+      # Optional: mount schema for inspection if needed.
       - ./database/schema:/var/www/schema
     networks:
       - chimera_network

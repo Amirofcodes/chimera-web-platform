@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
 # Configure PHP for production
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Create necessary directories for logs
+# Create necessary directories for logs and set permissions
 RUN mkdir -p /var/log/nginx \
     && mkdir -p /var/log/php \
     && touch /var/log/nginx/error.log \
@@ -38,10 +38,17 @@ COPY php/custom.ini /usr/local/etc/php/conf.d/custom.ini
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Copy source code
+# Note: Schema initialization is now managed by the MySQL container via ./database/init,
+# so we no longer copy schema.sql or ensure-schema.sh into the backend image.
+
+# Copy application source code
 COPY src/ /var/www/html/
 
-# Create downloads directory
+# Create uploads directory for profile images and ensure proper permissions
+RUN mkdir -p /var/www/html/uploads/profile && \
+    chown -R www-data:www-data /var/www/html/uploads
+
+# Create downloads directory and set permissions
 RUN mkdir -p /var/www/html/downloads && \
     chown -R www-data:www-data /var/www/html/downloads
 
