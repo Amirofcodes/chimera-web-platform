@@ -224,7 +224,7 @@ function handleProfilePictureUpload()
         sendErrorResponse('Image size should not exceed 2MB', 400);
     }
 
-    // Generate unique filename
+    // Generate unique filename and set upload path
     $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
     $filename = 'user_' . $user['id'] . '_' . time() . '.' . $ext;
     $upload_path = __DIR__ . '/../uploads/profile/';
@@ -234,12 +234,91 @@ function handleProfilePictureUpload()
         mkdir($upload_path, 0755, true);
     }
 
-    if (!move_uploaded_file($file['tmp_name'], $upload_path . $filename)) {
+    $destination = $upload_path . $filename;
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
         sendErrorResponse('Failed to upload image', 500);
     }
 
-    $image_url = '/uploads/profile/' . $filename;
+    // --- Image Optimization using GD ---
+    // Define maximum dimensions for the profile image
+    $maxWidth = 300;
+    $maxHeight = 300;
 
+    // Load the image based on its MIME type
+    switch ($file['type']) {
+        case 'image/jpeg':
+            $sourceImage = imagecreatefromjpeg($destination);
+            break;
+        case 'image/png':
+            $sourceImage = imagecreatefrompng($destination);
+            break;
+        case 'image/gif':
+            $sourceImage = imagecreatefromgif($destination);
+            break;
+        default:
+            $sourceImage = null;
+    }
+
+    if ($sourceImage) {
+        $width = imagesx($sourceImage);
+        $height = imagesy($sourceImage);
+
+        // Calculate the scaling ratio while preserving aspect ratio
+        $ratio = min($maxWidth / $width, $maxHeight / $height);
+        if ($ratio < 1) {
+            $newWidth = (int)($width * $ratio);
+            $newHeight = (int)($height * $ratio);
+
+            $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+
+            // Preserve transparency for PNG and GIF images
+            if ($file['type'] == 'image/png') {
+                imagealphablending($resizedImage, false);
+                imagesavealpha($resizedImage, true);
+            } elseif ($file['type'] == 'image/gif') {
+                $transparentIndex = imagecolortransparent($sourceImage);
+                if ($transparentIndex >= 0) {
+                    $transparentColor = imagecolorsforindex($sourceImage, $transparentIndex);
+                    $transparentIndex = imagecolorallocate($resizedImage, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+                    imagefill($resizedImage, 0, 0, $transparentIndex);
+                    imagecolortransparent($resizedImage, $transparentIndex);
+                }
+            }
+
+            // Resample the original image into the resized canvas
+            imagecopyresampled(
+                $resizedImage,
+                $sourceImage,
+                0,
+                0,
+                0,
+                0,
+                $newWidth,
+                $newHeight,
+                $width,
+                $height
+            );
+
+            // Save the optimized image back to disk
+            switch ($file['type']) {
+                case 'image/jpeg':
+                    imagejpeg($resizedImage, $destination, 85); // 85% quality
+                    break;
+                case 'image/png':
+                    imagepng($resizedImage, $destination, 6); // Compression level 6 (0-9)
+                    break;
+                case 'image/gif':
+                    imagegif($resizedImage, $destination);
+                    break;
+            }
+            imagedestroy($resizedImage);
+        }
+        imagedestroy($sourceImage);
+    }
+    // --- End Image Optimization ---
+
+    $backend_base_url = 'http://localhost:8000';
+    $image_url = $backend_base_url . '/uploads/profile/' . $filename;
     if (!updateUserProfileImage($user['id'], $image_url)) {
         sendErrorResponse('Failed to update profile image in database', 500);
     }
@@ -249,6 +328,7 @@ function handleProfilePictureUpload()
         'image_url' => $image_url
     ]);
 }
+
 
 /**
  * Route auth requests to appropriate handlers.
