@@ -1,13 +1,17 @@
 // src/pages/Dashboard.tsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card } from '../components/shared/Card';
 import { useAuth } from '../context/AuthContext';
 import { templateService, Template } from '../services/templateService';
 import { Spinner } from '../components/shared/Spinner';
 import { Link } from 'react-router-dom';
 import DownloadHistoryWidget from './DownloadHistoryWidget';
+import { useTheme } from '../context/ThemeContext';
+import ModernDashboard from '../components/dashboard/ModernDashboard';
+import { useEffect, useState } from 'react';
 
 const DashboardPage = () => {
+  const { theme } = useTheme();
   const { user } = useAuth();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +32,13 @@ const DashboardPage = () => {
 
     fetchTemplates();
   }, []);
+  
+  // If modern theme is active, use the ModernDashboard component
+  if (theme === 'modern') {
+    return <ModernDashboard />;
+  }
 
+  // Classic dashboard
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>

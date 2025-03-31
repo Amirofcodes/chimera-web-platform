@@ -2,6 +2,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { MainLayout } from "./components/layout/MainLayout";
 import HomePage from "./pages/Home";
 import RegisterPage from "./pages/Auth/Register";
@@ -19,30 +20,32 @@ import PublicRoute from "./components/auth/PublicRoute";
 const App = () => {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* Public auth routes - redirect to dashboard if already logged in */}
-          <Route element={<PublicRoute />}>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-          </Route>
-          
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<HomePage />} />
-            <Route path="download-cli" element={<CliDownloadPage />} />
-            
-            {/* Protected routes */}
-            <Route element={<PrivateRoute />}>
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="templates" element={<TemplatesListPage />} />
-              <Route path="templates/:id" element={<TemplateDetailPage />} />
+      <ThemeProvider>
+        <AuthProvider>
+          <Routes>
+            {/* Public auth routes - redirect to dashboard if already logged in */}
+            <Route element={<PublicRoute />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             </Route>
-          </Route>
-        </Routes>
-      </AuthProvider>
+            
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="download-cli" element={<CliDownloadPage />} />
+              
+              {/* Protected routes */}
+              <Route element={<PrivateRoute />}>
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="templates" element={<TemplatesListPage />} />
+                <Route path="templates/:id" element={<TemplateDetailPage />} />
+              </Route>
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 };
