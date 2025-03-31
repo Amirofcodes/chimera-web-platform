@@ -10,16 +10,27 @@ export const MainLayout: React.FC = () => {
   const { theme, isDarkMode } = useTheme();
   
   // Apply different styles based on theme
-  const bgClass = theme === 'modern' 
-    ? isDarkMode 
-      ? 'bg-modern-background text-modern-text' 
-      : 'bg-gray-50 text-gray-900'
-    : 'bg-gray-50';
+  let bgClass = '';
+  let textClass = '';
+  
+  if (theme === 'modern') {
+    if (isDarkMode) {
+      bgClass = 'bg-modern-background-dark';
+      textClass = 'text-modern-text-dark';
+    } else {
+      bgClass = 'bg-gray-50';
+      textClass = 'text-gray-900';
+    }
+  } else {
+    // Classic theme
+    bgClass = 'bg-gray-50';
+    textClass = 'text-gray-900';
+  }
 
   // Modern theme uses a different layout with a sidebar
   if (theme === 'modern') {
     return (
-      <div className={`min-h-screen flex ${bgClass}`}>
+      <div className={`min-h-screen flex ${bgClass} ${textClass}`}>
         <SideNav />
         <div className="flex-1 flex flex-col">
           <Navbar />
@@ -36,7 +47,7 @@ export const MainLayout: React.FC = () => {
   
   // Classic theme layout
   return (
-    <div className={`min-h-screen ${bgClass} flex flex-col`}>
+    <div className={`min-h-screen ${bgClass} ${textClass} flex flex-col`}>
       <Navbar />
       <main className="flex-grow container mx-auto px-4 py-8 max-w-7xl">
         <Outlet />

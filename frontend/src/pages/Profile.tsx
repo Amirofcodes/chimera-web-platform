@@ -1,9 +1,10 @@
-// src/pages/Profile.tsx with enhanced styling
+// src/pages/Profile.tsx
 import React, { useState, useEffect } from 'react';
 import { Card } from '../components/shared/Card';
 import Button from '../components/shared/Button';
 import { Spinner } from '../components/shared/Spinner';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import api from '../services/api';
 import { authService } from '../services/authService';
 
@@ -16,6 +17,7 @@ interface ProfileData {
 
 const ProfilePage = () => {
   const { user, updateUserProfile } = useAuth();
+  const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [profileImage, setProfileImage] = useState<File | null>(null);
@@ -27,6 +29,15 @@ const ProfilePage = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+
+  // Text colors based on theme and dark mode
+  const textColor = isDarkMode && theme === 'modern' ? 'text-gray-200' : 'text-gray-700';
+  const labelColor = isDarkMode && theme === 'modern' ? 'text-gray-300' : 'text-gray-700';
+  
+  // Background colors for fields
+  const fieldBgColor = isDarkMode && theme === 'modern' 
+    ? 'bg-gray-800 border-gray-700' 
+    : 'bg-gray-50 border-gray-100';
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -155,7 +166,7 @@ const ProfilePage = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Your Profile</h1>
+      <h1 className={`text-2xl font-bold mb-6 ${textColor}`}>Your Profile</h1>
       
       <Card className="mb-6">
         <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
@@ -172,9 +183,15 @@ const ProfilePage = () => {
             </div>
             
             <div className="mt-6 w-full">
-              <p className="text-sm font-medium mb-2">Change Profile Picture</p>
+              <p className={`text-sm font-medium mb-2 ${textColor}`}>Change Profile Picture</p>
               <label 
-                className="block w-full px-4 py-2 text-sm font-medium text-center text-blue-700 bg-blue-50 rounded cursor-pointer hover:bg-blue-100 transition-colors mb-2"
+                className={`block w-full px-4 py-2 text-sm font-medium text-center ${
+                  theme === 'modern'
+                    ? isDarkMode 
+                      ? 'text-indigo-400 bg-indigo-900/30 hover:bg-indigo-800/50' 
+                      : 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
+                    : 'text-blue-700 bg-blue-50 hover:bg-blue-100'
+                } rounded cursor-pointer transition-colors mb-2`}
               >
                 Choose File
                 <input 
@@ -184,7 +201,7 @@ const ProfilePage = () => {
                   onChange={handleFileChange} 
                 />
               </label>
-              <p className="text-xs text-center text-gray-500">
+              <p className={`text-xs text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {profileImage ? profileImage.name : "No file selected"}
               </p>
               
@@ -200,7 +217,7 @@ const ProfilePage = () => {
               )}
               
               {message && (
-                <div className={`mt-2 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={`mt-2 text-sm ${message.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {message.text}
                 </div>
               )}
@@ -210,18 +227,18 @@ const ProfilePage = () => {
           <div className="md:w-2/3 md:pl-8">
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <div className="p-3 bg-gray-50 rounded-md border border-gray-100">{userData?.email}</div>
+                <label className={`block text-sm font-medium mb-1 ${labelColor}`}>Email</label>
+                <div className={`p-3 rounded-md border ${fieldBgColor}`}>{userData?.email}</div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Name</label>
-                <div className="p-3 bg-gray-50 rounded-md border border-gray-100">{userData?.name || 'Not provided'}</div>
+                <label className={`block text-sm font-medium mb-1 ${labelColor}`}>Name</label>
+                <div className={`p-3 rounded-md border ${fieldBgColor}`}>{userData?.name || 'Not provided'}</div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Account Created</label>
-                <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                <label className={`block text-sm font-medium mb-1 ${labelColor}`}>Account Created</label>
+                <div className={`p-3 rounded-md border ${fieldBgColor}`}>
                   {userData?.created_at 
                     ? new Date(userData.created_at).toLocaleDateString() 
                     : 'Unknown'}
@@ -237,10 +254,10 @@ const ProfilePage = () => {
        <form onSubmit={handlePasswordChange}>
          <div className="space-y-4">
            <div>
-             <label className="block text-sm font-medium mb-1">Current Password</label>
+             <label className={`block text-sm font-medium mb-1 ${labelColor}`}>Current Password</label>
              <input
                type="password"
-               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+               className={`shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 ${fieldBgColor} ${textColor}`}
                value={currentPassword}
                onChange={(e) => setCurrentPassword(e.target.value)}
                required
@@ -248,10 +265,10 @@ const ProfilePage = () => {
            </div>
       
            <div>
-             <label className="block text-sm font-medium mb-1">New Password</label>
+             <label className={`block text-sm font-medium mb-1 ${labelColor}`}>New Password</label>
              <input
                type="password"
-               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+               className={`shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 ${fieldBgColor} ${textColor}`}
                value={newPassword}
                onChange={(e) => setNewPassword(e.target.value)}
                required
@@ -260,10 +277,10 @@ const ProfilePage = () => {
            </div>
       
            <div>
-             <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+             <label className={`block text-sm font-medium mb-1 ${labelColor}`}>Confirm New Password</label>
              <input
                type="password"
-               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+               className={`shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 ${fieldBgColor} ${textColor}`}
                value={confirmPassword}
                onChange={(e) => setConfirmPassword(e.target.value)}
                required
@@ -272,7 +289,7 @@ const ProfilePage = () => {
            </div>
       
            {passwordMessage && (
-             <div className={`text-sm ${passwordMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+             <div className={`text-sm ${passwordMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                {passwordMessage.text}
              </div>
            )}

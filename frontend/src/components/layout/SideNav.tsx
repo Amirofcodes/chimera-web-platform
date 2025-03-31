@@ -18,8 +18,8 @@ const SideNav: React.FC = () => {
   ];
   
   // Background color based on dark mode
-  const bgColor = isDarkMode ? 'bg-modern-secondary' : 'bg-white border-r';
-  const textColor = isDarkMode ? 'text-gray-300' : 'text-gray-700';
+  const bgColor = isDarkMode ? 'bg-modern-secondary border-r border-gray-800' : 'bg-white border-r border-gray-100';
+  const textColor = isDarkMode ? 'text-gray-200' : 'text-gray-700';
   
   return (
     <aside className={`w-64 min-h-screen ${bgColor} flex-shrink-0 hidden md:block`}>
@@ -38,7 +38,7 @@ const SideNav: React.FC = () => {
             )}
           </div>
           <h3 className={`mt-3 font-medium ${textColor}`}>{user?.name || user?.email}</h3>
-          <p className="text-gray-500 text-sm">Developer</p>
+          <p className={isDarkMode ? "text-gray-400 text-sm" : "text-gray-500 text-sm"}>Developer</p>
         </div>
         
         {/* Navigation */}
@@ -48,7 +48,7 @@ const SideNav: React.FC = () => {
               const isActive = location.pathname === item.path;
               const activeClass = isActive 
                 ? 'bg-indigo-600 text-white' 
-                : `${textColor} hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30`;
+                : `${textColor} hover:text-indigo-600 ${isDarkMode ? 'hover:bg-indigo-900/30' : 'hover:bg-indigo-50'}`;
               
               return (
                 <li key={item.name}>

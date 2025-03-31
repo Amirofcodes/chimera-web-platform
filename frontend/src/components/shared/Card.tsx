@@ -13,21 +13,27 @@ export const Card: React.FC<CardProps> = ({ children, className = '', title }) =
   
   // Apply different styles based on theme and dark mode
   let cardClasses = '';
+  let titleClasses = '';
   
   if (theme === 'modern') {
-    cardClasses = isDarkMode
-      ? 'bg-modern-card text-modern-text shadow-modern-card-dark rounded-modern'
-      : 'bg-white text-gray-900 shadow-modern-card rounded-modern';
+    // Modern theme with improved contrast
+    if (isDarkMode) {
+      cardClasses = 'bg-modern-card-dark text-gray-100 shadow-modern-card-dark rounded-modern';
+      titleClasses = 'text-gray-100 font-semibold';
+    } else {
+      cardClasses = 'bg-white text-gray-800 shadow-modern-card rounded-modern';
+      titleClasses = 'text-gray-800 font-semibold';
+    }
   } else {
+    // Classic theme
     cardClasses = 'bg-white rounded-lg shadow-sm';
+    titleClasses = 'text-gray-800 font-semibold';
   }
   
   return (
     <div className={`${cardClasses} p-6 ${className}`}>
       {title && (
-        <h2 className={`text-lg font-semibold mb-4 ${
-          theme === 'modern' && isDarkMode ? 'text-modern-text' : ''
-        }`}>
+        <h2 className={`text-lg mb-4 ${titleClasses}`}>
           {title}
         </h2>
       )}

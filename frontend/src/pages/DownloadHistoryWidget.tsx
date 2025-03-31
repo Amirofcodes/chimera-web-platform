@@ -73,13 +73,13 @@ const DownloadHistoryWidget = () => {
     <Card>
       <h3 className="text-lg font-bold mb-2">Your Downloads</h3>
       {displayDownloads.length === 0 ? (
-        <p className="text-gray-500">You haven't downloaded any templates yet.</p>
+        <p className="text-gray-500 dark:text-gray-400">You haven't downloaded any templates yet.</p>
       ) : (
         <div className="divide-y">
           {displayDownloads.map((download, index) => (
             <div key={index} className="py-2">
               <Link 
-                to={`/templates/${encodeURIComponent(download.template_id)}`}
+                to={`/templates/${download.template_id}`}
                 className="text-blue-600 hover:underline font-medium"
               >
                 {download.template_name}

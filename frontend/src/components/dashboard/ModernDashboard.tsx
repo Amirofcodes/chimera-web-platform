@@ -19,16 +19,22 @@ interface StatCardProps {
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, change, positive }) => {
   const { isDarkMode } = useTheme();
   
+  const bgClass = isDarkMode ? 'bg-indigo-900/40' : 'bg-indigo-100';
+  const textClass = isDarkMode ? 'text-gray-300' : 'text-gray-800';
+  const changeTextClass = positive 
+    ? isDarkMode ? 'text-green-400' : 'text-green-500'
+    : isDarkMode ? 'text-red-400' : 'text-red-500';
+  
   return (
     <Card className="flex items-center">
-      <div className={`p-3 rounded-lg mr-4 ${isDarkMode ? 'bg-indigo-900/30' : 'bg-indigo-100'}`}>
+      <div className={`p-3 rounded-lg mr-4 ${bgClass}`}>
         {icon}
       </div>
       <div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
-        <p className="text-2xl font-semibold">{value}</p>
+        <p className={isDarkMode ? "text-sm text-gray-400" : "text-sm text-gray-500"}>{title}</p>
+        <p className={`text-2xl font-semibold ${textClass}`}>{value}</p>
         {change && (
-          <p className={`text-xs ${positive ? 'text-green-500' : 'text-red-500'}`}>
+          <p className={`text-xs ${changeTextClass}`}>
             {positive ? '↑' : '↓'} {change} from last month
           </p>
         )}
@@ -43,6 +49,11 @@ const ModernDashboard: React.FC = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [recentDownloads, setRecentDownloads] = useState<any[]>([]);
+
+  // Text colors based on dark mode
+  const textClass = isDarkMode ? 'text-gray-100' : 'text-gray-800';
+  const subtextClass = isDarkMode ? 'text-gray-400' : 'text-gray-500';
+  const highlightedTextClass = isDarkMode ? 'text-indigo-400' : 'text-indigo-600';
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -116,8 +127,8 @@ const ModernDashboard: React.FC = () => {
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Welcome back, {user?.name || 'Developer'}</h1>
-          <p className="text-gray-500 dark:text-gray-400">
+          <h1 className={`text-2xl font-bold ${textClass}`}>Welcome back, {user?.name || 'Developer'}</h1>
+          <p className={subtextClass}>
             Here's what's happening with your environments today.
           </p>
         </div>
@@ -142,7 +153,7 @@ const ModernDashboard: React.FC = () => {
         <Card className="lg:col-span-2" title="Recent Templates">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+              <thead className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Type</th>
@@ -152,18 +163,20 @@ const ModernDashboard: React.FC = () => {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {templates.map((template) => (
                   <tr key={template.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className={`px-6 py-4 whitespace-nowrap ${textClass}`}>
                       <div className="font-medium">{template.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        isDarkMode ? 'bg-indigo-900/30 text-indigo-400' : 'bg-indigo-100 text-indigo-800'
+                        isDarkMode 
+                          ? 'bg-indigo-900 text-indigo-300' 
+                          : 'bg-indigo-100 text-indigo-800'
                       }`}>
                         {template.tags[0] || 'Stack'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Link to={`/templates/${template.id}`}>
+                      <Link to={`/templates/${encodeURIComponent(template.id)}`}>
                         <Button variant="secondary" size="sm">View</Button>
                       </Link>
                     </td>
@@ -173,7 +186,7 @@ const ModernDashboard: React.FC = () => {
             </table>
           </div>
           <div className="mt-4">
-            <Link to="/templates" className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium">
+            <Link to="/templates" className={`${highlightedTextClass} hover:underline text-sm font-medium`}>
               View all templates →
             </Link>
           </div>
@@ -182,24 +195,24 @@ const ModernDashboard: React.FC = () => {
         {/* Download History */}
         <Card title="Recent Downloads">
           {recentDownloads.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400">You haven't downloaded any templates yet.</p>
+            <p className={subtextClass}>You haven't downloaded any templates yet.</p>
           ) : (
             <div className="space-y-4">
               {recentDownloads.map((download, index) => (
                 <div key={index} className="flex items-start">
-                  <div className={`p-2 rounded mr-3 ${isDarkMode ? 'bg-indigo-900/30' : 'bg-indigo-100'}`}>
+                  <div className={`p-2 rounded mr-3 ${isDarkMode ? 'bg-indigo-900/40' : 'bg-indigo-100'}`}>
                     <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
                   </div>
                   <div>
                     <Link 
-                      to={`/templates/${download.template_id}`}
-                      className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium block"
+                      to={`/templates/${encodeURIComponent(download.template_id)}`}
+                      className={`${highlightedTextClass} hover:underline font-medium block`}
                     >
                       {download.template_name}
                     </Link>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className={`text-sm ${subtextClass}`}>
                       {new Date(download.download_date).toLocaleDateString()}
                     </div>
                   </div>
