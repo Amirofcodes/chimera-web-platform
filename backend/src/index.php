@@ -21,7 +21,8 @@ require_once 'controllers/templates.php';
 require_once 'controllers/user.php';
 
 // Add CORS headers for local development
-header('Access-Control-Allow-Origin: http://localhost:3000');
+$allowed_origin = getenv('ALLOWED_ORIGIN') ?: 'http://localhost:3000';
+header("Access-Control-Allow-Origin: $allowed_origin");
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
