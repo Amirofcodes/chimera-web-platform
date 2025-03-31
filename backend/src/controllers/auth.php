@@ -317,7 +317,11 @@ function handleProfilePictureUpload()
     }
     // --- End Image Optimization ---
 
-    $backend_base_url = 'http://localhost:8000';
+    $backend_base_url = getenv('BACKEND_BASE_URL');
+    if (!$backend_base_url) {
+
+        $backend_base_url = 'http://localhost:8000';
+    }
     $image_url = $backend_base_url . '/uploads/profile/' . $filename;
     if (!updateUserProfileImage($user['id'], $image_url)) {
         sendErrorResponse('Failed to update profile image in database', 500);
