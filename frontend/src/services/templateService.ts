@@ -1,3 +1,4 @@
+// src/services/templateService.ts
 import api from './api';
 
 export interface Template {
@@ -37,11 +38,8 @@ export const templateService = {
     const templates = await templateService.list();
     console.log("Available templates:", templates);
     
-    // Ensure ID is properly decoded in case it came from URL
-    const decodedId = decodeURIComponent(id);
-    console.log("Decoded ID:", decodedId);
-    
-    const template = templates.find(t => t.id === decodedId);
+    // Find the template by ID without decoding (ID is already in its original form)
+    const template = templates.find(t => t.id === id);
     console.log("Found template:", template);
     
     if (!template) {
