@@ -53,6 +53,8 @@ services:
       - MYSQL_DB=${MYSQL_DB}
       - JWT_SECRET=${JWT_SECRET}
       - MINIMAL_API=1
+      - BACKEND_BASE_URL=${BACKEND_BASE_URL}
+      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
     depends_on:
       - mysql
     networks:
