@@ -1,8 +1,10 @@
 USE `chimera-web-platform`;
 
+-- D'abord supprimer les tables avec dépendances
 DROP TABLE IF EXISTS `template_downloads`;
-DROP TABLE IF EXISTS `templates`;
+DROP TABLE IF EXISTS `payments`;
 DROP TABLE IF EXISTS `password_reset_tokens`;
+DROP TABLE IF EXISTS `templates`;
 DROP TABLE IF EXISTS `users`;
 
 CREATE TABLE `users` (
@@ -39,6 +41,19 @@ CREATE TABLE `template_downloads` (
     download_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES `users`(id),
     FOREIGN KEY (template_id) REFERENCES `templates`(id)
+);
+
+CREATE TABLE `payments` (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    payment_method VARCHAR(20) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    tier_name VARCHAR(100) NOT NULL,
+    external_payment_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 INSERT IGNORE INTO `users` (email, password_hash, name)

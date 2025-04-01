@@ -66,6 +66,10 @@ export const Navbar: React.FC = () => {
               Download CLI
             </Link>
             
+            <Link to="/support" className={linkClasses}>
+              Support Us
+            </Link>
+            
             {isAuthenticated ? (
               <>
                 <Link to="/templates" className={linkClasses}>
@@ -151,6 +155,13 @@ export const Navbar: React.FC = () => {
               onClick={() => setMobileMenuOpen(false)}
             >
               Download CLI
+            </Link>
+            <Link 
+              to="/support" 
+              className={`block py-2 ${linkClasses}`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Support Us
             </Link>
             
             {isAuthenticated ? (

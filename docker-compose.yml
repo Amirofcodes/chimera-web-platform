@@ -20,6 +20,11 @@ services:
       - PHP_ENVIRONMENT=development
       - PHP_DEBUG=true
       - MINIMAL_API=1
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
+      - PAYMENT_SUCCESS_URL=${BACKEND_BASE_URL}/support/success
+      - PAYMENT_CANCEL_URL=${BACKEND_BASE_URL}/support/cancel      
     command: php -S 0.0.0.0:80 -t /var/www/html
     networks:
       - app_network

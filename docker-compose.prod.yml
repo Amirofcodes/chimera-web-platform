@@ -55,6 +55,11 @@ services:
       - MINIMAL_API=1
       - BACKEND_BASE_URL=${BACKEND_BASE_URL}
       - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
+      - PAYMENT_SUCCESS_URL=https://chimerastack.com/support/success
+      - PAYMENT_CANCEL_URL=https://chimerastack.com/support/cancel      
     depends_on:
       - mysql
     networks:

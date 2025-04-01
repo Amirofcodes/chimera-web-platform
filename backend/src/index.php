@@ -19,6 +19,7 @@ require_once 'core/request.php';
 require_once 'controllers/auth.php';
 require_once 'controllers/templates.php';
 require_once 'controllers/user.php';
+require_once 'controllers/payment.php';
 
 // Add CORS headers for local development
 $allowed_origin = getenv('ALLOWED_ORIGIN') ?: 'http://localhost:3000';
@@ -68,6 +69,9 @@ if ($path === 'test') {
 } else if ($path === 'dashboard' || strpos($path, 'user/') === 0) {
     // User/dashboard routes
     routeUserRequest($path);
+} else if (strpos($path, 'payment/') === 0) {
+    // Payment routes
+    routePaymentRequest($path);
 } else {
     // Not found
     error_log("No route found for path: " . $path);
