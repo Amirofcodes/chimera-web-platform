@@ -20,15 +20,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   // Check for saved dark mode preference or default to system preference
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const savedDarkMode = localStorage.getItem('darkMode');
-    if (savedDarkMode !== null) {
-      return savedDarkMode === 'true';
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
-  // Update localStorage and document class when theme changes
+const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+  const savedDarkMode = localStorage.getItem('darkMode');
+  if (savedDarkMode !== null) {
+    return savedDarkMode === 'true';
+  }
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    return mq ? mq.matches : false;
+  }
+  return false;
+});
+  // Update localStorage when theme changes
   useEffect(() => {
     localStorage.setItem('theme', theme);
   }, [theme]);
