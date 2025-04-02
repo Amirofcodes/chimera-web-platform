@@ -12,13 +12,16 @@ RUN npm install
 # Install Tailwind CSS and dependencies
 RUN npm install -D tailwindcss postcss autoprefixer
 
+# Install Stripe JS SDK
+RUN npm install @stripe/stripe-js
+
 # Copy app source
 COPY . .
 
 # Build CSS
 RUN npm run build:css
 
-# Environment variables
+# Environment variables (for development, these can be overridden by your .env file)
 ENV NODE_ENV=development
 ENV WATCHPACK_POLLING=true
 ENV WDS_SOCKET_PORT=0

@@ -4,7 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
 import { useTheme } from '../../context/ThemeContext';
-import SideNav from '../layout/SideNav'; // New component for modern layout
+import SideNav from '../layout/SideNav';
 
 export const MainLayout: React.FC = () => {
   const { theme, isDarkMode } = useTheme();
@@ -27,13 +27,12 @@ export const MainLayout: React.FC = () => {
     textClass = 'text-gray-900';
   }
 
-  // Modern theme uses a different layout with a sidebar
+  // Modern theme uses a different layout with a sidebar and no top navbar
   if (theme === 'modern') {
     return (
       <div className={`min-h-screen flex ${bgClass} ${textClass}`}>
         <SideNav />
         <div className="flex-1 flex flex-col">
-          <Navbar />
           <main className="flex-grow px-6 py-6">
             <div className="max-w-7xl mx-auto">
               <Outlet />
@@ -45,7 +44,7 @@ export const MainLayout: React.FC = () => {
     );
   }
   
-  // Classic theme layout
+  // Classic theme layout with top navbar
   return (
     <div className={`min-h-screen ${bgClass} ${textClass} flex flex-col`}>
       <Navbar />

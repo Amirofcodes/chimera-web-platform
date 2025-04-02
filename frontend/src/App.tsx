@@ -16,6 +16,7 @@ import TemplatesListPage from "./pages/Templates/TemplatesList";
 import TemplateDetailPage from "./pages/Templates/TemplateDetail";
 import PrivateRoute from "./components/auth/PrivateRoute";
 import PublicRoute from "./components/auth/PublicRoute";
+import SupportPage from "./pages/Support";
 
 const App = () => {
   return (
@@ -35,12 +36,14 @@ const App = () => {
               <Route index element={<HomePage />} />
               <Route path="download-cli" element={<CliDownloadPage />} />
               
+              
               {/* Protected routes */}
               <Route element={<PrivateRoute />}>
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="templates" element={<TemplatesListPage />} />
                 <Route path="templates/:id" element={<TemplateDetailPage />} />
+                <Route path="support" element={<SupportPage />} />
               </Route>
             </Route>
           </Routes>

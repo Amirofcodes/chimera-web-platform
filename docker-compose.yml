@@ -20,6 +20,11 @@ services:
       - PHP_ENVIRONMENT=development
       - PHP_DEBUG=true
       - MINIMAL_API=1
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
+      - PAYMENT_SUCCESS_URL=${BACKEND_BASE_URL}/support/success
+      - PAYMENT_CANCEL_URL=${BACKEND_BASE_URL}/support/cancel      
     command: php -S 0.0.0.0:80 -t /var/www/html
     networks:
       - app_network
@@ -29,7 +34,6 @@ services:
       - ./backend/src:/var/www/html
       - ./backend/logs:/var/log
       - ./backend/downloads:/var/www/html/downloads
-      # Optional: if your app does not need direct access to schema files, you can remove this mount.
       - ./database/schema:/var/www/schema
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/test.php"]
@@ -54,6 +58,7 @@ services:
       - WDS_SOCKET_PORT=3000
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
+      - REACT_APP_STRIPE_PUBLISHABLE_KEY=${REACT_APP_STRIPE_PUBLISHABLE_KEY}
     networks:
       - app_network
     ports:
@@ -76,7 +81,6 @@ services:
       - "3300:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      # Mount unified initialization scripts for database creation.
       - ./database/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]

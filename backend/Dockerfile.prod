@@ -15,42 +15,35 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /var/www/html
+
+# Copy composer files
+COPY composer.json composer.lock* /var/www/html/
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Install PHP dependencies via Composer
+RUN composer install --no-dev --optimize-autoloader
+
 # Configure PHP for production
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 # Create necessary directories for logs and set permissions
-RUN mkdir -p /var/log/nginx \
-    && mkdir -p /var/log/php \
-    && touch /var/log/nginx/error.log \
-    && touch /var/log/nginx/access.log \
-    && touch /var/log/php/fpm-error.log \
-    && chown -R www-data:www-data /var/log/nginx \
-    && chown -R www-data:www-data /var/log/php \
-    && chmod 755 /var/log/nginx \
-    && chmod 755 /var/log/php
+RUN mkdir -p /var/log/nginx /var/log/php \
+    && touch /var/log/nginx/error.log /var/log/nginx/access.log /var/log/php/fpm-error.log \
+    && chown -R www-data:www-data /var/log/nginx /var/log/php \
+    && chmod 755 /var/log/nginx /var/log/php
 
-WORKDIR /var/www/html
-
-# Copy configuration files
+# Copy configuration files and entrypoint
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY php/custom.ini /usr/local/etc/php/conf.d/custom.ini
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Note: Schema initialization is now managed by the MySQL container via ./database/init,
-# so we no longer copy schema.sql or ensure-schema.sh into the backend image.
-
 # Copy application source code
 COPY src/ /var/www/html/
-
-# Create uploads directory for profile images and ensure proper permissions
-RUN mkdir -p /var/www/html/uploads/profile && \
-    chown -R www-data:www-data /var/www/html/uploads
-
-# Create downloads directory and set permissions
-RUN mkdir -p /var/www/html/downloads && \
-    chown -R www-data:www-data /var/www/html/downloads
 
 EXPOSE 80
 
