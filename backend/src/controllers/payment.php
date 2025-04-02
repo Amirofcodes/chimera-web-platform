@@ -8,6 +8,7 @@ require_once __DIR__ . '/../core/jwt.php';
 require_once __DIR__ . '/../core/response.php';
 require_once __DIR__ . '/../models/payment.php';
 
+
 /**
  * Mock Stripe implementation for development
  */
@@ -15,7 +16,7 @@ if (!class_exists('\\Stripe\\Stripe')) {
     class StripeCheckoutSession {
         public $id;
         public $url;
-        
+
         public static function create($options) {
             $session = new StripeCheckoutSession();
             $session->id = 'test_session_' . uniqid();
@@ -23,7 +24,7 @@ if (!class_exists('\\Stripe\\Stripe')) {
             return $session;
         }
     }
-    
+
     error_log("Using Stripe mock implementation. Install Stripe SDK in production.");
 }
 
@@ -34,39 +35,39 @@ if (!class_exists('\\PayPal\\Rest\\ApiContext')) {
     class MockPayPalApiContext {
         public function __construct($credentials) {}
     }
-    
+
     class MockPayPalCredential {
         public function __construct($clientId, $clientSecret) {}
     }
-    
+
     class MockPayPalPayer {
         public function setPaymentMethod($method) { return $this; }
     }
-    
+
     class MockPayPalAmount {
         public function setTotal($amount) { return $this; }
         public function setCurrency($currency) { return $this; }
     }
-    
+
     class MockPayPalTransaction {
         public function setAmount($amount) { return $this; }
         public function setDescription($desc) { return $this; }
     }
-    
+
     class MockPayPalRedirectUrls {
         public function setReturnUrl($url) { return $this; }
         public function setCancelUrl($url) { return $this; }
     }
-    
+
     class MockPayPalPayment {
         public $id;
         private $links = [];
-        
+
         public function __construct() {
             $this->id = 'test_payment_' . uniqid();
             $this->links[] = (object)['rel' => 'approval_url', 'href' => 'https://paypal.test/approve/' . $this->id];
         }
-        
+
         public function setIntent($intent) { return $this; }
         public function setPayer($payer) { return $this; }
         public function setTransactions($transactions) { return $this; }
@@ -75,7 +76,7 @@ if (!class_exists('\\PayPal\\Rest\\ApiContext')) {
         public function getLinks() { return $this->links; }
         public function getId() { return $this->id; }
     }
-    
+
     error_log("Using PayPal mock implementation. Install PayPal SDK in production.");
 }
 
@@ -85,13 +86,11 @@ if (!class_exists('\\PayPal\\Rest\\ApiContext')) {
 function handleStripeCheckoutCreate()
 {
     $user = authenticateRequest();
-
     if (!$user) {
         sendErrorResponse('Authentication required', 401);
     }
 
     $json_data = getJsonData();
-
     if (
         !$json_data ||
         !isset($json_data['amount']) ||
@@ -103,20 +102,19 @@ function handleStripeCheckoutCreate()
     $amount   = $json_data['amount'];
     $tierName = $json_data['tierName'];
 
-    // Backend URL and success/cancel URLs
+    // Determine URLs from environment
     $backend_base_url = getenv('BACKEND_BASE_URL') ?: 'http://localhost:8000';
     $frontend_url = getenv('FRONTEND_URL') ?: (
         $backend_base_url === 'https://chimerastack.com' ? 
         'https://chimerastack.com' : 
         'http://localhost:3000'
     );
-    
     $success_url = $frontend_url . '/support?success=true&session_id={CHECKOUT_SESSION_ID}';
     $cancel_url = $frontend_url . '/support?canceled=true';
 
-    // Initialize Stripe
+    // Initialize Stripe using environment variable for the secret key
     $stripeApiKey = getenv('STRIPE_SECRET_KEY') ?: 'sk_test_yourTestKey';
-    
+
     try {
         if (class_exists('\\Stripe\\Stripe')) {
             \Stripe\Stripe::setApiKey($stripeApiKey);
@@ -142,11 +140,11 @@ function handleStripeCheckoutCreate()
                 ]
             ]);
         } else {
-            // Use mock implementation
+            // Use mock implementation for development
             $session = StripeCheckoutSession::create([]);
         }
 
-        // Record payment initiation
+        // Record payment initiation in the database
         $paymentId = recordPaymentInitiation($user['id'], 'stripe', $amount, $tierName, $session->id);
 
         sendSuccessResponse([
@@ -165,13 +163,11 @@ function handleStripeCheckoutCreate()
 function handlePaypalPaymentCreate()
 {
     $user = authenticateRequest();
-
     if (!$user) {
         sendErrorResponse('Authentication required', 401);
     }
 
     $json_data = getJsonData();
-
     if (
         !$json_data ||
         !isset($json_data['amount']) ||
@@ -183,14 +179,13 @@ function handlePaypalPaymentCreate()
     $amount   = $json_data['amount'];
     $tierName = $json_data['tierName'];
 
-    // Backend URL and success/cancel URLs
+    // Determine URLs from environment
     $backend_base_url = getenv('BACKEND_BASE_URL') ?: 'http://localhost:8000';
     $frontend_url = getenv('FRONTEND_URL') ?: (
         $backend_base_url === 'https://chimerastack.com' ? 
         'https://chimerastack.com' : 
         'http://localhost:3000'
     );
-    
     $success_url = $frontend_url . '/support?success=true';
     $cancel_url = $frontend_url . '/support?canceled=true';
 
@@ -203,21 +198,21 @@ function handlePaypalPaymentCreate()
                     getenv('PAYPAL_CLIENT_SECRET') ?: 'your_client_secret'
                 )
             );
-            
+
             $payer = new \PayPal\Api\Payer();
             $amount_obj = new \PayPal\Api\Amount();
             $transaction = new \PayPal\Api\Transaction();
             $redirectUrls = new \PayPal\Api\RedirectUrls();
             $payment = new \PayPal\Api\Payment();
         } else {
-            // Use mock implementation
+            // Use mock implementation for development
             $apiContext = new MockPayPalApiContext(
                 new MockPayPalCredential(
                     getenv('PAYPAL_CLIENT_ID') ?: 'your_client_id',
                     getenv('PAYPAL_CLIENT_SECRET') ?: 'your_client_secret'
                 )
             );
-            
+
             $payer = new MockPayPalPayer();
             $amount_obj = new MockPayPalAmount();
             $transaction = new MockPayPalTransaction();
@@ -225,20 +220,20 @@ function handlePaypalPaymentCreate()
             $payment = new MockPayPalPayment();
         }
 
-        // Configure payment
+        // Configure the PayPal payment
         $payer->setPaymentMethod('paypal');
         $amount_obj->setTotal($amount)->setCurrency('USD');
         $transaction->setAmount($amount_obj)->setDescription("ChimeraStack Donation - $tierName");
         $redirectUrls->setReturnUrl($success_url)->setCancelUrl($cancel_url);
-        
+
         $payment->setIntent('sale')
                 ->setPayer($payer)
                 ->setTransactions([$transaction])
                 ->setRedirectUrls($redirectUrls);
-        
+
         $payment->create($apiContext);
 
-        // Get approval link
+        // Retrieve the approval URL
         $approvalUrl = null;
         foreach ($payment->getLinks() as $link) {
             if ($link->getRel() == 'approval_url') {
@@ -251,7 +246,7 @@ function handlePaypalPaymentCreate()
             throw new \Exception('Approval URL not found');
         }
 
-        // Record payment initiation
+        // Record payment initiation in the database
         $paymentId = recordPaymentInitiation($user['id'], 'paypal', $amount, $tierName, $payment->getId());
 
         sendSuccessResponse([
@@ -275,10 +270,10 @@ function routePaymentRequest($path)
     } elseif ($path === 'payment/paypal/create-payment') {
         handlePaypalPaymentCreate();
     } elseif ($path === 'payment/stripe/verify') {
-        // Implementation for stripe payment verification
+        // Implementation for Stripe payment verification
         sendSuccessResponse(['message' => 'Payment verified']);
     } elseif ($path === 'payment/paypal/verify') {
-        // Implementation for paypal payment verification
+        // Implementation for PayPal payment verification
         sendSuccessResponse(['message' => 'Payment verified']);
     } else {
         sendErrorResponse('Payment endpoint not found', 404);
