@@ -43,20 +43,13 @@ export const Navbar: React.FC = () => {
       : 'text-red-600 hover:text-red-800'
     : 'text-red-600 hover:text-red-800';
 
-  // Only show logo in classic theme or on mobile in modern theme
-  const shouldShowLogo = theme !== 'modern' || isMobile;
-
   return (
     <nav className={navClasses}>
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex justify-between items-center h-16">
-          {shouldShowLogo ? (
-            <Link to="/" className="flex items-center">
-              <span className={logoClasses}>ChimeraStack</span>
-            </Link>
-          ) : (
-            <div></div> // Empty div for spacing when logo is hidden
-          )}
+          <Link to="/" className="flex items-center">
+            <span className={logoClasses}>ChimeraStack</span>
+          </Link>
           
           {/* Desktop menu */}
           <div className="hidden md:flex items-center space-x-4">
