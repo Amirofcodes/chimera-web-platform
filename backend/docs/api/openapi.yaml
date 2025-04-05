@@ -1,0 +1,649 @@
+openapi: 3.0.3
+info:
+  title: ChimeraStack API
+  description: API permettant la gestion des templates d'environnements de développement et des utilisateurs
+  version: 1.0.0
+  contact:
+    name: Support ChimeraStack
+    email: support@chimerastack.com
+
+servers:
+  - url: https://chimerastack.com/api
+    description: Serveur de production
+  - url: http://localhost:8000
+    description: Serveur de développement local
+
+tags:
+  - name: auth
+    description: Gestion de l'authentification et des profils utilisateurs
+  - name: templates
+    description: Gestion des templates d'environnements de développement
+  - name: payment
+    description: Gestion des paiements et donations
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Connexion utilisateur
+      description: Authentifie un utilisateur et retourne un token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: utilisateur@exemple.fr
+                password:
+                  type: string
+                  format: password
+                  example: motdepasse123
+      responses:
+        "200":
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: "#/components/schemas/User"
+                  access_token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "401":
+          description: Identifiants invalides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Inscription utilisateur
+      description: Crée un nouveau compte utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: nouveau@exemple.fr
+                password:
+                  type: string
+                  format: password
+                  example: motdepasse123
+                name:
+                  type: string
+                  example: Jean Dupont
+      responses:
+        "200":
+          description: Inscription réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: "#/components/schemas/User"
+                  access_token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "409":
+          description: Email déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/profile:
+    get:
+      tags:
+        - auth
+      summary: Profil utilisateur
+      description: Récupère le profil de l'utilisateur connecté
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profil récupéré avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/request-reset:
+    post:
+      tags:
+        - auth
+      summary: Demande de réinitialisation de mot de passe
+      description: Envoie un email avec un lien de réinitialisation de mot de passe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: utilisateur@exemple.fr
+      responses:
+        "200":
+          description: Demande traitée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "If an account exists with that email, a reset link has been sent"
+
+  /auth/reset-password:
+    post:
+      tags:
+        - auth
+      summary: Réinitialisation de mot de passe
+      description: Réinitialise le mot de passe avec le token reçu par email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - password
+              properties:
+                token:
+                  type: string
+                  example: "1a2b3c4d5e6f7g8h9i0j"
+                password:
+                  type: string
+                  format: password
+                  example: "nouveaumotdepasse123"
+      responses:
+        "200":
+          description: Mot de passe réinitialisé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Password has been reset successfully"
+        "400":
+          description: Token invalide ou expiré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/change-password:
+    post:
+      tags:
+        - auth
+      summary: Changement de mot de passe
+      description: Change le mot de passe de l'utilisateur connecté
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                  example: "ancienmdp123"
+                newPassword:
+                  type: string
+                  format: password
+                  example: "nouveaumdp123"
+      responses:
+        "200":
+          description: Mot de passe changé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Password updated successfully"
+        "400":
+          description: Mot de passe actuel incorrect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/upload-profile-picture:
+    post:
+      tags:
+        - auth
+      summary: Téléchargement d'image de profil
+      description: Télécharge et associe une image de profil à l'utilisateur
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                profile_image:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Image téléchargée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Profile picture updated successfully"
+                  image_url:
+                    type: string
+                    example: "https://chimerastack.com/uploads/profile/user_1_1234567890.jpg"
+        "400":
+          description: Format de fichier invalide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /templates:
+    get:
+      tags:
+        - templates
+      summary: Liste des templates
+      description: Récupère la liste des templates disponibles
+      responses:
+        "200":
+          description: Liste récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  templates:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Template"
+
+  /templates/download:
+    get:
+      tags:
+        - templates
+      summary: Téléchargement d'un template
+      description: Télécharge un template spécifique
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          example: php/nginx/mysql
+          description: Identifiant du template à télécharger
+      responses:
+        "200":
+          description: Téléchargement initié avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  template_id:
+                    type: string
+                    example: php/nginx/mysql
+                  message:
+                    type: string
+                    example: "Template download ready"
+                  download_url:
+                    type: string
+                    example: "/downloads/php-nginx-mysql.zip"
+                  size:
+                    type: string
+                    example: "1024 KB"
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Template non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /user/downloads:
+    get:
+      tags:
+        - templates
+      summary: Historique des téléchargements
+      description: Récupère l'historique des téléchargements de l'utilisateur
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Historique récupéré avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  downloads:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Download"
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /dashboard:
+    get:
+      tags:
+        - auth
+      summary: Tableau de bord utilisateur
+      description: Récupère les données du tableau de bord de l'utilisateur
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Données récupérées avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  dashboard:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "Welcome to your dashboard"
+                      user:
+                        $ref: "#/components/schemas/User"
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /payment/stripe/create-checkout:
+    post:
+      tags:
+        - payment
+      summary: Création d'une session de paiement Stripe
+      description: Crée une session de paiement Stripe pour une donation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - tierName
+              properties:
+                amount:
+                  type: number
+                  example: 20
+                tierName:
+                  type: string
+                  example: "Premium Supporter"
+      responses:
+        "200":
+          description: Session de paiement créée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  checkoutUrl:
+                    type: string
+                    example: "https://checkout.stripe.com/pay/cs_test_..."
+                  sessionId:
+                    type: string
+                    example: "cs_test_..."
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Erreur de traitement du paiement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /payment/paypal/create-payment:
+    post:
+      tags:
+        - payment
+      summary: Création d'un paiement PayPal
+      description: Crée un paiement PayPal pour une donation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - tierName
+              properties:
+                amount:
+                  type: number
+                  example: 20
+                tierName:
+                  type: string
+                  example: "Premium Supporter"
+      responses:
+        "200":
+          description: Paiement créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  approvalUrl:
+                    type: string
+                    example: "https://www.paypal.com/webapps/hermes?token=..."
+                  paymentId:
+                    type: string
+                    example: "PAY-..."
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Erreur de traitement du paiement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        email:
+          type: string
+          format: email
+          example: "utilisateur@exemple.fr"
+        name:
+          type: string
+          nullable: true
+          example: "Jean Dupont"
+        profile_image:
+          type: string
+          nullable: true
+          example: "https://chimerastack.com/uploads/profile/user_1_1234567890.jpg"
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-01-15T12:00:00Z"
+
+    Template:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "php/nginx/mysql"
+        name:
+          type: string
+          example: "PHP/Nginx/MySQL Stack"
+        description:
+          type: string
+          example: "PHP development environment with Nginx web server and MySQL database"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["php", "mysql", "nginx"]
+        downloads:
+          type: integer
+          example: 1250
+
+    Download:
+      type: object
+      properties:
+        template_id:
+          type: string
+          example: "php/nginx/mysql"
+        template_name:
+          type: string
+          example: "PHP/Nginx/MySQL Stack"
+        download_date:
+          type: string
+          format: date-time
+          example: "2023-06-20T15:30:45Z"
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Invalid credentials"
