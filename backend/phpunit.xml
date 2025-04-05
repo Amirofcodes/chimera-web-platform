@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php"
+         colors="true"
+         verbose="true">
+    <testsuites>
+        <testsuite name="Unit Tests">
+            <directory>tests/unit</directory>
+        </testsuite>
+        <testsuite name="Integration Tests">
+            <directory>tests/integration</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="MYSQL_HOST" value="mysql"/>
+        <env name="MYSQL_USER" value="test_user"/>
+        <env name="MYSQL_PASSWORD" value="test_password"/>
+        <env name="MYSQL_DB" value="chimera_test"/>
+        <env name="JWT_SECRET" value="test_secret"/>
+    </php>
+</phpunit>
