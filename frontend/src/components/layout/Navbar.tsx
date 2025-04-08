@@ -1,42 +1,51 @@
 // src/components/layout/Navbar.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
-import { ThemeToggle } from '../shared/ThemeToggle';
-import Button from '../shared/Button';
-import { useWindowSize } from '../../hooks/useWindowSize';
+import { useAuth } from '../../context/AuthContext'; // Access authentication state and actions
+import { useTheme } from '../../context/ThemeContext'; // Access theme (modern/classic) and dark mode status
+import { ThemeToggle } from '../shared/ThemeToggle'; // Button to toggle theme
+import Button from '../shared/Button'; // Reusable Button component
+import { useWindowSize } from '../../hooks/useWindowSize'; // Hook to determine window size for responsive behavior
 
 export const Navbar: React.FC = () => {
+  // Retrieve authentication data: whether user is logged in, current user data, and logout function.
   const { isAuthenticated, user, logout } = useAuth();
+  // Retrieve current theme and dark mode status.
   const { theme, isDarkMode } = useTheme();
+  // Navigation hook for programmatic navigation.
   const navigate = useNavigate();
+  // State to control the visibility of the mobile menu.
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Determine the window width to decide if we're in mobile view.
   const { width } = useWindowSize();
   const isMobile = width < 768;
   
+  // Handle logout: call logout function and navigate to home.
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  // Determine classes based on theme and dark mode
+  // Dynamically set the navigation bar classes based on theme and dark mode.
   const navClasses = theme === 'modern'
     ? isDarkMode 
-      ? 'bg-modern-secondary border-b border-gray-800 text-modern-text-dark' 
+      ? 'bg-modern-secondary border-b border-gray-800 text-modern-text-dark'
       : 'bg-white text-gray-900 shadow-sm'
     : 'bg-white shadow-sm';
 
+  // Set logo text classes based on theme.
   const logoClasses = theme === 'modern' 
-    ? 'text-xl font-bold text-indigo-600' 
+    ? 'text-xl font-bold text-indigo-600'
     : 'text-xl font-bold text-blue-600';
 
+  // Set link styling classes based on theme and dark mode.
   const linkClasses = theme === 'modern'
     ? isDarkMode
       ? 'text-gray-300 hover:text-indigo-400'
       : 'text-gray-700 hover:text-indigo-600'
     : 'text-gray-700 hover:text-blue-600';
 
+  // Set logout button classes based on theme and dark mode.
   const logoutClasses = theme === 'modern'
     ? isDarkMode
       ? 'text-red-400 hover:text-red-300'
@@ -46,15 +55,19 @@ export const Navbar: React.FC = () => {
   return (
     <nav className={navClasses}>
       <div className="container mx-auto px-4 max-w-7xl">
+        {/* Top section of the navbar: logo and menu items */}
         <div className="flex justify-between items-center h-16">
+          {/* Logo */}
           <Link to="/" className="flex items-center">
             <span className={logoClasses}>ChimeraStack</span>
           </Link>
           
-          {/* Desktop menu */}
+          {/* Desktop Menu: hidden on mobile devices */}
           <div className="hidden md:flex items-center space-x-4">
+            {/* Theme toggle button */}
             <ThemeToggle />
             
+            {/* Navigation links */}
             <Link to="/download-cli" className={linkClasses}>
               Download CLI
             </Link>
@@ -63,6 +76,7 @@ export const Navbar: React.FC = () => {
               Support Us
             </Link>
             
+            {/* If the user is authenticated, show additional links and profile info */}
             {isAuthenticated ? (
               <>
                 <Link to="/templates" className={linkClasses}>
@@ -72,6 +86,7 @@ export const Navbar: React.FC = () => {
                   Dashboard
                 </Link>
                 <div className="relative ml-3 flex items-center">
+                  {/* Profile link with user avatar */}
                   <Link 
                     to="/profile" 
                     className={`flex items-center ${linkClasses} mr-3`}
@@ -79,13 +94,16 @@ export const Navbar: React.FC = () => {
                     <div className={`w-8 h-8 rounded-full ${theme === 'modern' ? 'rounded-md' : ''} 
                       bg-gray-200 flex items-center justify-center mr-2 overflow-hidden`}>
                       {user?.profile_image ? (
+                        // Display user profile image if available
                         <img src={user.profile_image} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
+                        // Otherwise, display the first letter of the user's name or email
                         <span className="text-sm">{user?.name?.charAt(0) || user?.email?.charAt(0) || '?'}</span>
                       )}
                     </div>
                     <span>{user?.name || user?.email}</span>
                   </Link>
+                  {/* Logout button */}
                   <button
                     onClick={handleLogout}
                     className={`${logoutClasses} text-sm`}
@@ -95,6 +113,7 @@ export const Navbar: React.FC = () => {
                 </div>
               </>
             ) : (
+              // If not authenticated, show Login and Register options.
               <div className="flex items-center space-x-2">
                 <Link to="/login" className={linkClasses}>
                   Login
@@ -106,7 +125,7 @@ export const Navbar: React.FC = () => {
             )}
           </div>
           
-          {/* Mobile menu button */}
+          {/* Mobile Menu Button: visible only on smaller screens */}
           <div className="md:hidden flex items-center">
             <ThemeToggle className="mr-2" />
             <button
@@ -119,6 +138,7 @@ export const Navbar: React.FC = () => {
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
               >
+                {/* Toggle between hamburger and close icon based on menu state */}
                 {mobileMenuOpen ? (
                   <path 
                     strokeLinecap="round" 
@@ -139,7 +159,7 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
         
-        {/* Mobile menu */}
+        {/* Mobile Menu: renders only if mobileMenuOpen is true */}
         {mobileMenuOpen && (
           <div className="md:hidden py-2 border-t dark:border-gray-700">
             <Link 
