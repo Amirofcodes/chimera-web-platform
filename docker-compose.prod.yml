@@ -39,8 +39,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile.prod
     container_name: chimera_backend
+    # Remove the volume that overrides the built source code (and vendor)
+    # - ./backend/src:/var/www/html
     volumes:
-      - ./backend/src:/var/www/html
       - ./backend/logs:/var/log
       - ./backend/downloads:/var/www/html/downloads
       - ./database/schema:/var/www/schema
@@ -71,6 +72,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
 
   mysql:
     image: mysql:8.0
