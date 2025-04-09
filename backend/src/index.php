@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Main API Router
  *
@@ -11,6 +12,10 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
+// ----------------- VENDOR AUTOLOADER ----------------- //
+// Currently loaded after controllers; this is unusual.
+require_once __DIR__ . '/vendor/autoload.php';
 
 // Load core utility functions for database access, JWT authentication, responses, and request parsing.
 require_once 'core/database.php';

@@ -30,7 +30,7 @@ COPY composer.json composer.lock* /var/www/html/
 
 # Install Composer, a dependency manager for PHP, and place it in the /usr/local/bin directory.
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
+RUN composer require stripe/stripe-php
 # Install PHP dependencies using Composer.
 # The options --no-dev and --optimize-autoloader are used to optimize for production.
 RUN composer install --no-dev --optimize-autoloader
@@ -62,3 +62,7 @@ EXPOSE 80
 
 # Define the entrypoint for the container.
 ENTRYPOINT ["docker-entrypoint.sh"]
+
+
+
+
