@@ -1,28 +1,41 @@
 <?php
-
 /**
- * Template model functions.
+ * Template Model Functions
+ *
+ * This file contains functions that interact with the database to retrieve and manage
+ * template data, including fetching all templates, retrieving a specific template by ID,
+ * recording a template download, and returning a download URL.
  */
+
+// Include the database connection helper.
 require_once __DIR__ . '/../core/database.php';
 
 /**
- * Get all templates.
- * @return array List of templates
+ * Retrieve all templates from the database.
+ *
+ * This function fetches the basic template details from the database and then enhances
+ * each template record with additional data such as tags (based on the description) and
+ * the download count from the template_downloads table.
+ *
+ * @return array List of templates with additional information.
  */
 function getAllTemplates()
 {
+    // Establish a database connection.
     $pdo = getDbConnection();
     if (!$pdo) {
-        return []; // Return empty array on database error
+        return []; // Return an empty array if the database connection fails.
     }
 
     try {
+        // Query to select template information.
         $stmt = $pdo->query("SELECT id, name, description, category FROM templates");
         $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Enhance templates with additional data
+        // Loop through each template to add extra details.
         foreach ($templates as &$template) {
             $tags = [];
+            // Add tag if the description contains specific keywords.
             if (strpos($template['description'], 'PHP') !== false) {
                 $tags[] = 'php';
             }
@@ -44,11 +57,13 @@ function getAllTemplates()
             if (strpos($template['description'], 'Fullstack') !== false) {
                 $tags[] = 'fullstack';
             }
+            // Add the computed tags to the template.
             $template['tags'] = $tags;
 
-            // Get download count
+            // Prepare a statement to count downloads for the template.
             $stmtCount = $pdo->prepare("SELECT COUNT(*) as downloads FROM template_downloads WHERE template_id = ?");
             $stmtCount->execute([$template['id']]);
+            // Store the download count as an integer.
             $template['downloads'] = (int)$stmtCount->fetch(PDO::FETCH_ASSOC)['downloads'];
         }
 
@@ -60,13 +75,19 @@ function getAllTemplates()
 }
 
 /**
- * Get template by ID.
- * @param string $templateId Template ID
- * @return array|null Template data or null if not found
+ * Retrieve a template by its ID.
+ *
+ * This function searches through the list of all templates and returns the template
+ * that matches the given ID. If no template is found, it returns null.
+ *
+ * @param string $templateId The ID of the template.
+ * @return array|null Template data or null if not found.
  */
 function getTemplateById($templateId)
 {
+    // Get all templates.
     $templates = getAllTemplates();
+    // Loop through each template to find a match.
     foreach ($templates as $template) {
         if ($template['id'] === $templateId) {
             return $template;
@@ -76,16 +97,22 @@ function getTemplateById($templateId)
 }
 
 /**
- * Record template download.
- * @param int $userId User ID
- * @param string $templateId Template ID
- * @return bool Success status
+ * Record a template download event.
+ *
+ * This function inserts a record into the template_downloads table with the user's ID,
+ * the template ID, and the current date/time as the download date.
+ *
+ * @param int    $userId     The ID of the user downloading the template.
+ * @param string $templateId The ID of the template being downloaded.
+ * @return bool True if the download is recorded successfully, false otherwise.
  */
 function recordTemplateDownload($userId, $templateId)
 {
+    // Establish a database connection.
     $pdo = getDbConnection();
     if (!$pdo) return false;
 
+    // Prepare the SQL statement for inserting a new download record.
     $stmt = $pdo->prepare("INSERT INTO template_downloads (user_id, template_id, download_date) VALUES (?, ?, NOW())");
 
     try {
@@ -98,12 +125,17 @@ function recordTemplateDownload($userId, $templateId)
 }
 
 /**
- * Get template download URL.
- * @param string $templateId Template ID
- * @return string|null Download URL or null if template not found
+ * Get the download URL for a specific template.
+ *
+ * This function returns a predefined download URL for a given template ID. If the template
+ * ID does not exist in the mapping, it returns null.
+ *
+ * @param string $templateId The ID of the template.
+ * @return string|null The download URL for the template, or null if not found.
  */
 function getTemplateDownloadUrl($templateId)
 {
+    // Define a mapping of template IDs to their corresponding download URLs.
     $templates = [
         'php/nginx/mysql'                => '/downloads/php-nginx-mysql.zip',
         'php/nginx/postgresql'           => '/downloads/php-nginx-postgresql.zip',
@@ -111,5 +143,6 @@ function getTemplateDownloadUrl($templateId)
         'fullstack/react-php/mysql-nginx' => '/downloads/fullstack-react-php-mysql.zip',
     ];
 
+    // Return the URL if it exists, otherwise return null.
     return isset($templates[$templateId]) ? $templates[$templateId] : null;
 }

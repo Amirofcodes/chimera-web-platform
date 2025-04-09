@@ -2,17 +2,29 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 
+// Define the props for ThemeToggle; optionally accept additional CSS classes.
 interface ThemeToggleProps {
   className?: string;
 }
 
+/**
+ * ThemeToggle Component
+ *
+ * This component provides two main controls:
+ * 1. A toggle between "Classic" and "Modern" themes.
+ * 2. A dark/light mode toggle (visible only when Modern theme is active).
+ *
+ * It uses the Theme context to get and update the current theme and dark mode status.
+ */
 export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
+  // Retrieve current theme, dark mode status, and updater functions from the Theme context.
   const { theme, setTheme, isDarkMode, toggleDarkMode } = useTheme();
 
   return (
     <div className={`flex items-center space-x-3 ${className}`}>
-      {/* Theme toggle (Classic/Modern) */}
+      {/* Theme Toggle Buttons (Classic/Modern) */}
       <div className="flex items-center border rounded-md overflow-hidden shadow-sm">
+        {/* Button to set Classic theme */}
         <button
           onClick={() => setTheme('classic')}
           className={`px-3 py-1.5 text-sm font-medium ${
@@ -23,6 +35,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
         >
           Classic
         </button>
+        {/* Button to set Modern theme */}
         <button
           onClick={() => setTheme('modern')}
           className={`px-3 py-1.5 text-sm font-medium ${
@@ -35,14 +48,16 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
         </button>
       </div>
 
-      {/* Dark/Light toggle - Only show in modern theme */}
+      {/* Dark/Light Mode Toggle: Only display when Modern theme is active */}
       {theme === 'modern' && (
         <button
           onClick={toggleDarkMode}
           className="p-1.5 rounded-full focus:outline-none bg-gray-100 dark:bg-gray-700 shadow-sm"
           aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         >
+          {/* Render sun icon for dark mode, moon icon for light mode */}
           {isDarkMode ? (
+            // Sun icon: indicates the current mode is dark and clicking will switch to light.
             <svg
               className="w-5 h-5 text-yellow-500"
               fill="currentColor"
@@ -56,6 +71,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
               />
             </svg>
           ) : (
+            // Moon icon: indicates the current mode is light and clicking will switch to dark.
             <svg
               className="w-5 h-5 text-gray-700"
               fill="currentColor"

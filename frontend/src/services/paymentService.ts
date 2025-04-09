@@ -6,33 +6,68 @@ interface StripeResponse {
   sessionId: string;
 }
 
-interface PaypalResponse {
-  success: boolean;
-  approvalUrl: string;
-  paymentId: string;
-}
-
 export const paymentService = {
+  /**
+   * Creates a Stripe checkout session for donation payment
+   * 
+   * @param amount - The donation amount in USD
+   * @param tierName - The name of the donation tier 
+   * @returns Promise with checkout URL and session ID
+   */
   createStripeCheckout: async (amount: number, tierName: string): Promise<StripeResponse> => {
-    const response = await api.post('/payment/stripe/create-checkout', {
-      amount,
-      tierName
-    });
-    return response.data;
+    try {
+      const response = await api.post('/payment/stripe/create-checkout', {
+        amount,
+        tierName
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Failed to create checkout session');
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Stripe checkout creation error:', error);
+      
+      // Rethrow the error with the response data if available, or use the original error
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw error;
+    }
   },
   
-  createPaypalCheckout: async (amount: number, tierName: string): Promise<PaypalResponse> => {
-    const response = await api.post('/payment/paypal/create-payment', {
-      amount,
-      tierName
-    });
-    return response.data;
+  /**
+   * Verifies a Stripe payment after completion
+   * 
+   * @param sessionId - The Stripe session ID to verify
+   * @returns Promise with payment verification result
+   */
+  verifyStripePayment: async (sessionId: string): Promise<any> => {
+    try {
+      const response = await api.post('/payment/stripe/verify', {
+        sessionId
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      throw error;
+    }
   },
   
-  verifyPayment: async (paymentId: string, paymentType: 'stripe' | 'paypal'): Promise<any> => {
-    const response = await api.post(`/payment/${paymentType}/verify`, {
-      paymentId
-    });
-    return response.data;
+  /**
+   * Gets payment history for the current user
+   * 
+   * @returns Promise with the user's payment history
+   */
+  getPaymentHistory: async (): Promise<any> => {
+    try {
+      const response = await api.get('/payment/history');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      throw error;
+    }
   }
 };

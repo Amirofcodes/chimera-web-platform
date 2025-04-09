@@ -1,31 +1,43 @@
 import React from 'react';
-import { Card } from '../components/shared/Card';
-import Button from '../components/shared/Button';
-import { useTheme } from '../context/ThemeContext';
+import { Card } from '../components/shared/Card'; // Reusable Card component for grouping content
+import Button from '../components/shared/Button'; // Reusable Button component for actions
+import { useTheme } from '../context/ThemeContext'; // Hook to access current theme and dark mode
 
+/**
+ * CliDownloadPage Component
+ *
+ * This page provides users with options to download and install the ChimeraStack CLI.
+ * It offers two main download options: installing via PyPI and direct download for Linux and macOS.
+ * The page also includes installation instructions and basic usage commands.
+ */
 const CliDownloadPage = () => {
+  // Retrieve current theme settings from the Theme context.
   const { theme, isDarkMode } = useTheme();
   
-  // Text colors based on theme
+  // Dynamic text and background classes based on theme and dark mode.
   const textColor = theme === 'modern' && isDarkMode ? 'text-gray-100' : 'text-gray-800';
   const headingColor = theme === 'modern' && isDarkMode ? 'text-gray-100' : 'text-gray-900';
   const subtextColor = theme === 'modern' && isDarkMode ? 'text-gray-400' : 'text-gray-600';
   const codeBlockBg = theme === 'modern' && isDarkMode ? 'bg-gray-800' : 'bg-gray-50';
   const linkColor = theme === 'modern' && isDarkMode ? 'text-indigo-400' : 'text-blue-600';
   
-  // Function to handle PyPI installation guide copy
+  /**
+   * copyPyPiCommand: Copies the PyPI installation command to the clipboard.
+   */
   const copyPyPiCommand = () => {
     navigator.clipboard.writeText('pip install chimera-stack-cli');
   };
 
-  // Download URLs from GitHub release
+  // Define direct download URLs for Linux and macOS executables.
   const linuxDownloadUrl = "https://github.com/Amirofcodes/ChimeraStack_CLI/releases/download/v0.1.0/chimera-stack-cli-linux-x64";
   const macosDownloadUrl = "https://github.com/Amirofcodes/ChimeraStack_CLI/releases/download/v0.1.0/chimera-stack-cli-macos";
 
   return (
     <div className="max-w-4xl mx-auto py-8">
+      {/* Page Title */}
       <h1 className={`text-3xl font-bold mb-6 ${headingColor}`}>ChimeraStack CLI</h1>
       
+      {/* Card: Download Options */}
       <Card className="mb-6">
         <h2 className="text-xl font-bold mb-4">Download Options</h2>
         <p className={`mb-6 ${textColor}`}>
@@ -33,6 +45,7 @@ const CliDownloadPage = () => {
           development environments directly from your terminal.
         </p>
         
+        {/* Option 1: Install via PyPI */}
         <div className="mb-6">
           <h3 className={`font-bold text-lg mb-2 ${textColor}`}>Option 1: Install via PyPI</h3>
           <div className={`${codeBlockBg} p-4 rounded mb-4 flex justify-between items-center`}>
@@ -49,6 +62,7 @@ const CliDownloadPage = () => {
           </p>
         </div>
         
+        {/* Option 2: Direct Download */}
         <div className="mb-4">
           <h3 className={`font-bold text-lg mb-2 ${textColor}`}>Option 2: Direct Download</h3>
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
@@ -69,9 +83,11 @@ const CliDownloadPage = () => {
         </div>
       </Card>
       
+      {/* Card: Installation Instructions */}
       <Card className="mb-6">
         <h2 className="text-xl font-bold mb-4">Installation Instructions</h2>
         
+        {/* Linux Installation */}
         <div className="mb-6">
           <h3 className={`font-bold mb-2 ${textColor}`}>Linux</h3>
           <div className={`${codeBlockBg} p-4 rounded`}>
@@ -81,6 +97,7 @@ const CliDownloadPage = () => {
           </div>
         </div>
         
+        {/* macOS Installation */}
         <div className="mb-6">
           <h3 className={`font-bold mb-2 ${textColor}`}>macOS</h3>
           <div className={`${codeBlockBg} p-4 rounded`}>
@@ -91,6 +108,7 @@ const CliDownloadPage = () => {
         </div>
       </Card>
       
+      {/* Card: Basic Usage */}
       <Card>
         <h2 className="text-xl font-bold mb-4">Basic Usage</h2>
         <div className={`${codeBlockBg} p-4 rounded mb-4`}>

@@ -1,27 +1,49 @@
 // frontend/src/pages/Auth/Register.tsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import Button from '../../components/shared/Button';
-import { Card } from '../../components/shared/Card';
+import { useAuth } from '../../context/AuthContext'; // Hook to access authentication methods
+import Button from '../../components/shared/Button'; // Reusable Button component
+import { Card } from '../../components/shared/Card';   // Reusable Card component for layout
 
+/**
+ * RegisterPage Component
+ *
+ * This component renders the registration form for creating a new account.
+ * It manages local state for email, password, name, and confirmation password,
+ * validates that the passwords match, and calls the register method from the Auth context.
+ * On successful registration, it navigates the user to the dashboard.
+ */
 const RegisterPage = () => {
+  // State for form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // State for tracking loading state and error messages
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
+  // Access the register function from the Auth context
   const { register } = useAuth();
+  // Hook to navigate programmatically after successful registration
   const navigate = useNavigate();
   
+  /**
+   * handleSubmit: Handles the registration form submission.
+   *
+   * - Prevents default form submission behavior.
+   * - Validates that the password and confirmPassword fields match.
+   * - Sets loading state, clears previous errors, and calls the register API.
+   * - On success, navigates the user to the dashboard.
+   * - On failure, displays an error message.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
-    // Validate passwords match
+    // Check if password and confirm password match.
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -29,9 +51,12 @@ const RegisterPage = () => {
     }
     
     try {
+      // Attempt to register the user with provided email, password, and name.
       await register({ email, password, name });
+      // On successful registration, navigate to the dashboard.
       navigate('/dashboard');
     } catch (err: any) {
+      // Set error message based on API response or default message.
       setError(err.response?.data?.error || 'Registration failed');
     } finally {
       setLoading(false);
@@ -40,12 +65,16 @@ const RegisterPage = () => {
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Use Card component to wrap the registration form */}
       <Card className="max-w-md w-full">
         <h1 className="text-center text-2xl font-bold mb-6">Create your account</h1>
         
+        {/* Display error message if present */}
         {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
         
+        {/* Registration form */}
         <form onSubmit={handleSubmit}>
+          {/* Email field */}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
               Email
@@ -60,6 +89,7 @@ const RegisterPage = () => {
             />
           </div>
           
+          {/* Optional Name field */}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
               Name (optional)
@@ -73,6 +103,7 @@ const RegisterPage = () => {
             />
           </div>
           
+          {/* Password field */}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
               Password
@@ -88,6 +119,7 @@ const RegisterPage = () => {
             />
           </div>
           
+          {/* Confirm Password field */}
           <div className="mb-6">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
               Confirm Password
@@ -103,6 +135,7 @@ const RegisterPage = () => {
             />
           </div>
           
+          {/* Submit button */}
           <Button
             variant="primary"
             className="w-full"
@@ -113,6 +146,7 @@ const RegisterPage = () => {
           </Button>
         </form>
         
+        {/* Link to navigate to the login page if the user already has an account */}
         <div className="mt-4 text-center text-sm">
           <p>Already have an account? <Link to="/login" className="text-blue-600 hover:underline">Sign in</Link></p>
         </div>

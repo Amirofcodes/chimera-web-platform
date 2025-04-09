@@ -31,7 +31,8 @@ services:
     ports:
       - "8000:80"
     volumes:
-      - ./backend/src:/var/www/html
+      - ./backend/src:/var/www/html   # Document root reste le dossier src
+      - ./backend/vendor:/var/www/html/vendor  # Montage du vendor
       - ./backend/logs:/var/log
       - ./backend/downloads:/var/www/html/downloads
       - ./database/schema:/var/www/schema
